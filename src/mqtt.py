@@ -1,5 +1,5 @@
 import paho.mqtt.client as mqtt
-from src.Influx_parameters import Influx_parameters
+from src.Influx_parameters import InfluxParameters
 from src.paramters import Parameters
 from time import strftime
 import json
@@ -7,7 +7,7 @@ from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 class MQTT:
-    def __init__(self, parameters: Parameters, influx: Influx_parameters):
+    def __init__(self, parameters: Parameters, influx: InfluxParameters):
         self.file_output_active = parameters.file_output_active
         self.timestamp_active = parameters.timestamp_active
         self.path = parameters.path

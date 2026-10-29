@@ -1,19 +1,20 @@
 from dataclasses import dataclass
-import os
-from dotenv import load_dotenv
+from os import environ
+from dotenv import dotenv_values
 
-@dataclass
-class Influx_parameters:
-    url : str = ""
-    token : str = ""
-    org : str = ""
-    bucket : str = ""
+@dataclass(frozen=True)
+class InfluxParameters:
+    url: str
+    token: str
+    org: str
+    bucket: str
 
     @classmethod
-    def read_env_file(cls, path:str):
-        load_dotenv(path)
-        cls.url = os.environ["INFLUX_URL"]
-        cls.token = os.environ["INFLUX_TOKEN"]
-        cls.org = os.environ["INFLUX_ORG"]
-        cls.bucket = os.environ["INFLUX_BUCKET"]
-        return cls
+    def from_env_file(cls, path: str) -> "InfluxParameters":
+        env = dotenv_values(path) | environ
+        return cls(
+            url=env["INFLUX_URL"],
+            token=env["INFLUX_TOKEN"],
+            org=env["INFLUX_ORG"],
+            bucket=env["INFLUX_BUCKET"],
+        )
