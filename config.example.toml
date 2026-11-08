@@ -1,0 +1,82 @@
+# mqtt-influx-bridge — annotated example showing every option.
+# Copy to config.toml and edit. Secrets never belong in this file.
+
+[mqtt]
+host = "192.168.1.225"
+port = 1883
+client_id = "mqtt-influx-bridge"
+keepalive = 60
+qos = 1                         # 0, 1 or 2
+reconnect_min_delay_s = 1
+reconnect_max_delay_s = 120
+# username = "bridge"           # password comes from $MQTT_PASSWORD, not this file
+
+[influx]
+batch_size = 500
+flush_interval_ms = 1000
+max_retries = 5
+
+[queue]
+maxsize = 10000
+
+[logging]
+level = "INFO"                  # DEBUG logs every decoded reading
+target = "stdout"               # or "file"
+# path = "/root/logs"
+# name = "bridge"
+# add_date_to_name = true
+
+[file_sink]
+enabled = false
+# path = "/root/logs"
+# file_name = "readings.log"
+
+# --- a plain JSON sensor ---------------------------------------------------
+
+[[sensor]]
+name = "techroom-water"
+topic = "temp/techroom/1"
+decoder = "json"
+measurement = "environment"
+tags = { room = "techroom" }
+fields = { watertemperature = "temp" }
+decoder_options = { cast = "float" }
+
+# --- a whole fleet from one block ------------------------------------------
+# '+' captures the device id, which tags_from_topic turns into a tag, so every
+# Shelly publishing on shellies/<id>/status/pm1:0 is covered by this one block.
+
+[[sensor]]
+name = "shelly-pm"
+topic = "shellies/+/status/pm1:0"
+decoder = "json"
+measurement = "power"
+tags = { device = "shelly" }
+tags_from_topic = { device_id = 1 }
+fields = { voltage = "voltage", current = "current", power = "apower" }
+decoder_options = { cast = "float" }
+
+# --- a sensor publishing a bare value, not JSON ----------------------------
+# `scalar` takes the whole payload by default, or the one capture group of
+# `pattern` when given. Exactly one field, so use `field` rather than `fields`.
+
+[[sensor]]
+name = "boiler-pressure"
+topic = "boiler/pressure"
+decoder = "scalar"
+measurement = "environment"
+field = "pressure"
+tags = { room = "techroom" }
+decoder_options = { pattern = '([-\d.]+)\s*bar', cast = "float" }
+
+# --- nested JSON -----------------------------------------------------------
+# Dotted paths descend into nested objects.
+
+[[sensor]]
+name = "weatherstation"
+topic = "weather/+/report"
+decoder = "json"
+measurement = "weather"
+tags_from_topic = { station = 1 }
+fields = { temperature = "sensors.outdoor.temp_c", humidity = "sensors.outdoor.rh" }
+decoder_options = { cast = "float", ignore_missing = true }
