@@ -1,0 +1,1280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build Order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: single measured column on a sensor-log ground; steps hang off a left
+   gutter rail that carries the step number, so the sequence is readable as a
+   sequence. Phases are the only full-width bands.
+
+   Palette: Synthwave '84. A committed single dark world — no light variant,
+   because the theme has none. Four elevation steps from the deep ground to the
+   sunken code pane, and the neons carry meaning rather than decoration:
+   pink = structure, cyan = data and verified, yellow = trap, coral = retired,
+   mint = commentary. */
+:root {
+  --bg:        #1f1830;   /* deep ground */
+  --surface:   #2a2139;   /* cards, masthead, footer */
+  --surface-2: #34294f;   /* chips, inline code */
+  --sunken:    #1a1426;   /* code panes */
+
+  --ink:       #f0eff1;
+  --muted:     #a39fd0;
+  --line:      #3b3157;
+
+  --accent:    #ff7edb;   /* neon pink: headings, links, the step rail */
+  --data:      #36f9f6;   /* cyan: readouts, new files, verification */
+  --data-bg:   rgba(54, 249, 246, 0.07);
+  --signal:    #fede5d;   /* yellow: traps */
+  --signal-bg: rgba(254, 222, 93, 0.07);
+  --mint:      #72f1b8;   /* commentary */
+  --retired:   #f97e72;   /* coral: code being deleted */
+
+  --glow-strong: 0 0 2px rgba(255, 126, 219, 0.55), 0 0 18px rgba(255, 126, 219, 0.45);
+  --glow-soft:   0 0 12px rgba(255, 126, 219, 0.28);
+
+  --font-display: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --measure: 68ch;
+  --rail: 3.5rem;
+
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.65;
+  font-feature-settings: "ss01";
+}
+img { max-width: 100%; }
+
+.wrap {
+  max-width: calc(var(--measure) + var(--rail) + 2rem);
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ---------- type ---------- */
+h1, h2 { font-family: var(--font-display); font-weight: 700; text-wrap: balance; margin: 0; }
+h1 {
+  font-size: clamp(2.2rem, 6vw, 3.2rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  color: var(--accent);
+  text-shadow: var(--glow-strong);
+}
+h2 {
+  font-size: clamp(1.45rem, 4vw, 1.95rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-shadow: var(--glow-soft);
+}
+h3 {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1.1rem;
+  line-height: 1.35;
+  margin: 0;
+  text-wrap: balance;
+}
+p { margin: 0; }
+a { color: var(--accent); text-underline-offset: 0.18em; }
+a:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--surface-2);
+  padding: 0.1em 0.34em;
+  border-radius: 3px;
+  overflow-wrap: break-word;
+}
+kbd {
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  padding: 0.08em 0.4em;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  color: var(--ink);
+}
+pre {
+  margin: 0;
+  overflow-x: auto;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.85rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  tab-size: 2;
+}
+pre code { background: none; padding: 0; font-size: 1em; }
+
+/* ---------- masthead ---------- */
+/* The horizon line: the one deliberate flourish, and it does structural work —
+   it is what separates the masthead from the body. */
+.masthead {
+  position: relative;
+  z-index: 1;
+  border-bottom: 1px solid var(--accent);
+  background: linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
+  box-shadow: 0 1px 18px rgba(255, 126, 219, 0.3);
+}
+.masthead .wrap {
+  padding-block: clamp(2.5rem, 7vw, 4.5rem) clamp(1.75rem, 4vw, 2.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+.eyebrow { display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; }
+.standfirst {
+  max-width: 58ch;
+  font-size: clamp(1rem, 2.4vw, 1.12rem);
+  color: var(--muted);
+}
+.standfirst strong { color: var(--ink); font-weight: 600; }
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1px;
+  margin-top: 0.6rem;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.fact {
+  background: var(--surface);
+  padding: 0.7rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.fact b {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: break-word;
+  color: var(--data);
+}
+
+/* ---------- generic sections ---------- */
+main .wrap { padding-block: 0 clamp(3rem, 8vw, 5rem); }
+.section { padding-block: clamp(2.25rem, 6vw, 3.25rem) 0; }
+.section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  max-width: var(--measure);
+}
+.section-head p { color: var(--muted); }
+
+.howto {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  max-width: var(--measure);
+}
+.howto > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 0.7rem;
+  align-items: baseline;
+}
+.howto .k { font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent); font-weight: 600; }
+
+/* ---------- current state ---------- */
+.ledger {
+  margin-top: 1.4rem;
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.ledger > div {
+  background: var(--surface);
+  padding: 0.8rem 0 0.9rem;
+  display: grid;
+  grid-template-columns: minmax(0, 13rem) minmax(0, 1fr);
+  gap: 0.15rem 1.5rem;
+  align-items: start;
+}
+.ledger .what {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ink);
+  overflow-wrap: break-word;
+}
+.ledger .why { color: var(--muted); font-size: 0.95rem; max-width: 56ch; }
+@media (max-width: 34rem) {
+  .ledger > div { grid-template-columns: 1fr; }
+}
+
+/* ---------- phase band ---------- */
+.phase {
+  margin-top: clamp(2.5rem, 7vw, 4rem);
+  padding-top: 1.1rem;
+  border-top: 2px solid var(--accent);
+  box-shadow: 0 -1px 14px -4px rgba(255, 126, 219, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.phase-meta { display: flex; flex-wrap: wrap; gap: 0.3rem 1.1rem; align-items: baseline; }
+.phase-aim { color: var(--muted); max-width: 60ch; }
+
+/* ---------- step ---------- */
+.step {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  gap: 0 0.5rem;
+  padding-block: 1.6rem;
+  border-bottom: 1px solid var(--line);
+}
+.step-no {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  text-shadow: var(--glow-soft);
+  padding-top: 0.12rem;
+}
+.step-body { display: flex; flex-direction: column; gap: 0.8rem; min-width: 0; }
+.step-body > p { max-width: var(--measure); }
+
+.files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.files span {
+  font-family: var(--font-mono);
+  font-size: 0.73rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--muted);
+}
+.files span.new { color: var(--data); border-color: rgba(54, 249, 246, 0.45); }
+.files span.gone { color: var(--retired); border-color: rgba(249, 126, 114, 0.45); text-decoration: line-through; }
+
+ul.plain { margin: 0; padding-left: 1.15rem; max-width: var(--measure); }
+ul.plain li { margin-bottom: 0.3rem; }
+ul.plain li::marker { color: var(--accent); }
+
+.note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.2rem 0.7rem;
+  align-items: baseline;
+  padding: 0.7rem 0.85rem;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  max-width: var(--measure);
+}
+.note .label { grid-column: 1; }
+.note p { grid-column: 2; }
+.note.verify { background: var(--data-bg); border-left: 2px solid var(--data); }
+.note.verify .label { color: var(--data); }
+.note.trap { background: var(--signal-bg); border-left: 2px solid var(--signal); }
+.note.trap .label { color: var(--signal); }
+.note.learn { background: var(--surface); border-left: 2px solid var(--mint); }
+.note.learn .label { color: var(--mint); }
+@media (max-width: 30rem) {
+  .note { grid-template-columns: 1fr; }
+  .note p { grid-column: 1; }
+}
+
+/* ---------- done checklist ---------- */
+.done {
+  margin-top: 1.3rem;
+  display: grid;
+  gap: 0.55rem;
+  max-width: var(--measure);
+}
+.done label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem;
+  align-items: start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.6rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+.done input { margin: 0.35rem 0 0; accent-color: var(--accent); }
+.done input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.done input:checked + span { color: var(--muted); text-decoration: line-through; }
+
+footer {
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+footer .wrap { padding-block: 1.5rem 2rem; display: flex; flex-direction: column; gap: 0.3rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">
+      <span class="label">mqtt_influxDB_converter</span>
+      <span class="label">implementation plan</span>
+      <span class="label">18 steps · 7 phases</span>
+    </div>
+    <h1>Build Order</h1>
+    <p class="standfirst">
+      The route from the one hardcoded sensor in <code>src/mqtt.py</code> to the
+      package described in <a href="ARCHITECTURE.md">ARCHITECTURE.md</a> — built
+      by hand, in an order where <strong>every step ends in something you can
+      run</strong>. Each step names the files, the signatures and the command
+      that proves it works. It does not hand you the bodies of the functions;
+      that is the part you are here to write.
+    </p>
+    <div class="facts">
+      <div class="fact"><span class="label">broker</span><b>192.168.1.225:1883</b></div>
+      <div class="fact"><span class="label">topic</span><b>temp/techroom/1</b></div>
+      <div class="fact"><span class="label">measurement</span><b>environment</b></div>
+      <div class="fact"><span class="label">field</span><b>watertemperature</b></div>
+      <div class="fact"><span class="label">python</span><b>3.12 · uv</b></div>
+    </div>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <section class="section">
+    <div class="section-head">
+      <span class="label">How to use this</span>
+      <h2>Five ground rules</h2>
+    </div>
+    <div class="howto">
+      <div>
+        <span class="k">1</span>
+        <p>Work the phases in order. Phases&nbsp;1–3 need no broker and no
+        database, so you can write most of this project offline, on a laptop,
+        with nothing running.</p>
+      </div>
+      <div>
+        <span class="k">2</span>
+        <p>Write the test before the code wherever a step says <em>table-driven</em>.
+        The pure parts of this project — topic matching, decoding — are the best
+        test-first practice in it, because the right answer is obvious and the
+        implementation is not.</p>
+      </div>
+      <div>
+        <span class="k">3</span>
+        <p>Keep the old code running until Step&nbsp;17. <code>main.py</code> and
+        <code>src/</code> stay on disk and keep working while the new package
+        grows beside them. Nothing is deleted until the replacement is proven.</p>
+      </div>
+      <div>
+        <span class="k">4</span>
+        <p>Commit at every step boundary. Eighteen small commits make it possible
+        to see which step broke something.</p>
+      </div>
+      <div>
+        <span class="k">5</span>
+        <p>Signatures in this plan are the contract, not a style suggestion. The
+        protocols in Phase&nbsp;1 are what let Phase&nbsp;4 and&nbsp;5 be written
+        without touching Phase&nbsp;1 again.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <span class="label">Starting position</span>
+      <h2>What is on disk today</h2>
+      <p>Read this once before Step&nbsp;1. Four of these are the bugs the new
+      design exists to remove, and you will want to recognise them when you
+      re-implement the same behaviour correctly.</p>
+    </div>
+    <div class="ledger">
+      <div>
+        <span class="what">mqtt_influx_bridge/</span>
+        <span class="why">Exists and is empty. Everything in Phases 0–6 lands here.</span>
+      </div>
+      <div>
+        <span class="what">tests/</span>
+        <span class="why">Exists and is empty, though <code>.pytest_cache</code> shows pytest has been run. pytest is not yet a declared dependency.</span>
+      </div>
+      <div>
+        <span class="what">config.toml</span>
+        <span class="why">Zero bytes. Step 8 gives it content and a committed example twin.</span>
+      </div>
+      <div>
+        <span class="what">src/mqtt.py:33–53</span>
+        <span class="why">The whole converter. <code>on_message</code> decodes, parses with <code>message.split(":")[1][:-1]</code>, prints, opens a <em>new</em> <code>InfluxDBClient</code>, and writes a hardcoded Point. No <code>try/except</code> anywhere, so one bad payload raises inside paho's network loop.</span>
+      </div>
+      <div>
+        <span class="what">src/mqtt.py:37–50</span>
+        <span class="why">The Influx write sits in the <code>else</code> branch of <code>timestamp_active</code>. Setting that flag true silently stops all writing. It works today only because <code>main.py:7</code> happens to pass <code>False</code>.</span>
+      </div>
+      <div>
+        <span class="what">main.py:7–8</span>
+        <span class="why">Config is hardcoded, including <code>/Users/dom/temp/influx.env</code> — a path that does not exist on the deployment host, where the systemd unit supplies <code>/etc/automation/influx.env</code>.</span>
+      </div>
+      <div>
+        <span class="what">src/paramters.py</span>
+        <span class="why">A complete CLI parser that is never called. No <code>ArgumentParser</code> is constructed anywhere in the repo. Same for <code>_lib/logger.py:setup_logging</code> and <code>_lib/ConfigToml</code>: three config subsystems, all dead.</span>
+      </div>
+      <div>
+        <span class="what">src/ (no __init__.py)</span>
+        <span class="why"><code>src/_lib/</code> has one, <code>src/</code> does not. Imports only resolve because Python treats it as an implicit namespace package when run from the repo root.</span>
+      </div>
+      <div>
+        <span class="what">src/Influx_parameters.py</span>
+        <span class="why">Worth keeping, in substance: the frozen dataclass and the <code>dotenv_values(path) | environ</code> precedence (process environment wins) are both correct for the deployment. Step 8 carries them forward.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PHASE 0 ================= -->
+  <div class="phase">
+    <div class="phase-meta">
+      <span class="label">Phase 0</span>
+      <h2>Make it a package</h2>
+    </div>
+    <p class="phase-aim">Before any logic: a package that imports, a test runner
+    that runs, and a command that starts. Two short steps.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-no">01</div>
+    <div class="step-body">
+      <h3>Package skeleton and entry point</h3>
+      <div class="files">
+        <span class="new">mqtt_influx_bridge/__init__.py</span>
+        <span class="new">mqtt_influx_bridge/__main__.py</span>
+        <span>pyproject.toml</span>
+      </div>
+      <p>Create an empty <code>__init__.py</code> and a <code>__main__.py</code>
+      whose <code>main()</code> prints one line and exits. In
+      <code>pyproject.toml</code>, add a dev dependency group with pytest, and
+      decide how the program is launched.</p>
+      <p>Two launch options, and the choice matters for Step&nbsp;17:</p>
+      <ul class="plain">
+        <li><code>uv run python -m mqtt_influx_bridge</code> needs nothing extra —
+        <code>__main__.py</code> is enough.</li>
+        <li><code>uv run mqtt-influx-bridge</code> needs a
+        <code>[build-system]</code> (hatchling) and a
+        <code>[project.scripts]</code> entry. Prefer this: the systemd unit then
+        points at one stable path in the venv's <code>bin/</code> instead of a
+        script path.</li>
+      </ul>
+      <pre><code>[project.scripts]
+mqtt-influx-bridge = "mqtt_influx_bridge.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["mqtt_influx_bridge"]
+
+[dependency-groups]
+dev = ["pytest&gt;=8"]</code></pre>
+      <div class="note trap">
+        <span class="label">Trap</span>
+        <p>The distribution is named <code>mqtt-influxdb-converter</code> but the
+        import package is <code>mqtt_influx_bridge</code>. Hatchling cannot guess
+        that, so the explicit <code>packages</code> line is required or the wheel
+        builds empty. Separately: the declared dependency <code>dotenv</code> is
+        not the library you are using — <code>dotenv_values</code> comes from
+        <code>python-dotenv</code>. Check with
+        <code>uv pip show python-dotenv dotenv</code> and fix the declaration
+        while you are in this file.</p>
+      </div>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p><code>uv run mqtt-influx-bridge</code> prints your line, and
+        <code>uv run pytest</code> exits cleanly on zero tests.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-no">02</div>
+    <div class="step-body">
+      <h3>The two core types</h3>
+      <div class="files">
+        <span class="new">mqtt_influx_bridge/model.py</span>
+        <span class="new">tests/test_model.py</span>
+      </div>
+      <p>Two frozen dataclasses and no imports beyond the standard library.
+      <code>RawMessage</code> is what arrives; <code>Reading</code> is what every
+      later stage speaks.</p>
+      <pre><code>@dataclass(frozen=True, slots=True)
+class RawMessage:
+    topic: str
+    payload: bytes
+    received_at: datetime          # UTC, stamped on arrival
+
+@dataclass(frozen=True, slots=True)
+class Reading:
+    measurement: str
+    fields: Mapping[str, float | int | str | bool]
+    tags: Mapping[str, str]
+    timestamp: datetime</code></pre>
+      <div class="note learn">
+        <span class="label">Why</span>
+        <p><code>Reading</code> is deliberately not an Influx <code>Point</code>.
+        That single decision is what keeps decoders free of
+        <code>influxdb_client</code>, which in turn is what makes them testable
+        with a plain <code>assert</code> and makes a second sink cost nothing.
+        <code>payload</code> stays <code>bytes</code> because decoding can fail,
+        and a decoder that owns the decode can report that failure properly.</p>
+      </div>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p>A test that constructs both and asserts <code>FrozenInstanceError</code>
+        on assignment. Trivial, but it is your first green test.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PHASE 1 ================= -->
+  <div class="phase">
+    <div class="phase-meta">
+      <span class="label">Phase 1</span>
+      <h2>The pure core</h2>
+    </div>
+    <p class="phase-aim">Routing and decoding: string and dict work with no I/O,
+    no broker, no database, no threads. This is the largest phase and the one
+    worth writing test-first. By the end you can decode the real sensor payload
+    from a unit test.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-no">03</div>
+    <div class="step-body">
+      <h3>MQTT topic matching</h3>
+      <div class="files">
+        <span class="new">mqtt_influx_bridge/routing.py</span>
+        <span class="new">tests/test_routing.py</span>
+      </div>
+      <p>One function: <code>topic_matches(pattern: str, topic: str) -> bool</code>,
+      implementing MQTT wildcard semantics. Write the test table first — the
+      rules are short enough to enumerate, and two of them are easy to get wrong.</p>
+      <pre><code># pattern, topic, expected
+("temp/techroom/1", "temp/techroom/1", True)
+("temp/+/1",        "temp/techroom/1", True)
+("temp/+",          "temp/techroom/1", False)   # + is exactly one level
+("temp/#",          "temp/techroom/1", True)
+("temp/#",          "temp",            True)    # # matches the parent too
+("#",               "$SYS/broker/load", False)  # wildcards skip $-topics
+("+/techroom/1",    "temp/techroom/1", True)</code></pre>
+      <div class="note trap">
+        <span class="label">Trap</span>
+        <p>The two rules that catch people: <code>temp/#</code> matches the bare
+        topic <code>temp</code>, and a leading wildcard never matches a topic
+        beginning with <code>$</code>. Both are in the MQTT spec and both will
+        bite you on a real broker.</p>
+      </div>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p><code>uv run pytest tests/test_routing.py -v</code> — green across the
+        whole table, including the negative cases.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-no">04</div>
+    <div class="step-body">
+      <h3>Tags from topic levels</h3>
+      <div class="files">
+        <span>mqtt_influx_bridge/routing.py</span>
+        <span>tests/test_routing.py</span>
+      </div>
+      <p>Add <code>tags_from_topic(topic: str, mapping: Mapping[str, int]) -> dict[str, str]</code>,
+      turning topic levels into tag values: with <code>{"room": 1, "device": 2}</code>,
+      the topic <code>temp/techroom/1</code> yields
+      <code>{"room": "techroom", "device": "1"}</code>.</p>
+      <p>An out-of-range index must raise something the pipeline can catch and
+      log per message, not crash the thread.</p>
+      <div class="note learn">
+        <span class="label">Why this earns its keep</span>
+        <p>This is the mechanism that makes one <code>[[sensor]]</code> block
+        cover a whole fleet of identical devices. Without it, every new sensor is
+        a new config block; with it, <code>temp/+/+</code> plus two indices
+        handles all of them. It is the main reason the project scales in sensor
+        count.</p>
+      </div>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p>Tests for the happy path, an index past the end of the topic, and
+        index&nbsp;0.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-no">05</div>
+    <div class="step-body">
+      <h3>Decoder protocol and registry</h3>
+      <div class="files">
+        <span class="new">mqtt_influx_bridge/decoders/__init__.py</span>
+        <span class="new">mqtt_influx_bridge/decoders/base.py</span>
+        <span class="new">tests/test_decoder_registry.py</span>
+      </div>
+      <p>Define the protocol, a <code>DecodeError</code>, and a name registry so
+      that config can select a decoder by string.</p>
+      <pre><code>class Decoder(Protocol):                      # pure: no I/O
+    def decode(self, msg: RawMessage, spec: SensorSpec) -> Iterable[Reading]: ...
+
+_REGISTRY: dict[str, type[Decoder]] = {}
+
+def register(name: str):                      # class decorator
+    ...
+
+def get_decoder(name: str) -> type[Decoder]:
+    # unknown name -> raise, listing the valid options</code></pre>
+      <div class="note learn">
+        <span class="label">Why a registry</span>
+        <p>So that a typo in <code>config.toml</code> fails at startup with the
+        list of valid names, instead of at the first message that arrives at
+        3&nbsp;a.m. Adding a payload format then costs one file, one decorator
+        and one import — which is the whole point of the refactor.</p>
+      </div>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p>Register a dummy decoder in a test, look it up, and assert that an
+        unknown name raises with the valid names in the message.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-no">06</div>
+    <div class="step-body">
+      <h3>The scalar decoder — replace the magic slice</h3>
+      <div class="files">
+        <span class="new">mqtt_influx_bridge/decoders/scalar.py</span>
+        <span class="new">tests/test_decoders_scalar.py</span>
+      </div>
+      <p>This is the step that retires
+      <code>message.split(":")[1][:-1]</code>. Extract one numeric value from a
+      payload, with the extraction pattern coming from config rather than from
+      code. Handle: a plain number (<code>21.5</code>), a number with a unit
+      (<code>21.5 °C</code>), and an optional regex with a capture group for
+      anything else.</p>
+      <div class="note trap">
+        <span class="label">Four failures to handle, not raise</span>
+        <p>Non-UTF-8 payload; no match in the payload; a match that will not cast
+        to float; and an empty payload. Each must produce a
+        <code>DecodeError</code> carrying the topic and a short payload excerpt —
+        never a traceback. Validate bad decoder options at construction time, so
+        a broken config dies at startup.</p>
+      </div>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p>Feed it the real payload your sensor publishes and assert the exact
+        <code>Reading</code>: measurement <code>environment</code>, field
+        <code>watertemperature</code>, value <code>21.5</code>. At this point the
+        core of the old <code>on_message</code> is reproduced, correctly, under
+        test, with zero network code written.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-no">07</div>
+    <div class="step-body">
+      <h3>The JSON decoder — prove the design works</h3>
+      <div class="files">
+        <span class="new">mqtt_influx_bridge/decoders/json_data.py</span>
+        <span class="new">tests/test_decoders_json.py</span>
+      </div>
+      <p>Map dotted paths in a JSON payload to field names, so one message can
+      yield several fields. Use the Shelly payload from the
+      <code>experiments</code> branch as the test case — voltage, current and
+      power from one message. That branch exists because the old design had no
+      way to support a second format; decoding it here, as a second small class,
+      is the proof that the new one does.</p>
+      <pre><code>fields = { voltage = "meters.0.voltage",
+           power   = "meters.0.power" }</code></pre>
+      <div class="note trap">
+        <span class="label">Trap</span>
+        <p>Decide explicitly what a missing key, a <code>null</code>, and a nested
+        object or list at the end of a path each do. Silently dropping a field
+        and raising <code>DecodeError</code> are both defensible — but pick one,
+        write it down, and test it. Undefined behaviour here becomes missing data
+        you discover weeks later in a Grafana gap.</p>
+      </div>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p>Three fields out of one real Shelly message, plus a test for each
+        failure case above. Decoders never set <code>tags</code> — leave them
+        empty; the pipeline merges tags in Step&nbsp;12.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PHASE 2 ================= -->
+  <div class="phase">
+    <div class="phase-meta">
+      <span class="label">Phase 2</span>
+      <h2>Configuration</h2>
+    </div>
+    <p class="phase-aim">One step, and the longest single file in the project.
+    Everything the old code hardcoded moves here, and every mistake becomes a
+    startup error that names the field.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-no">08</div>
+    <div class="step-body">
+      <h3>TOML to frozen dataclasses, validated eagerly</h3>
+      <div class="files">
+        <span class="new">mqtt_influx_bridge/config.py</span>
+        <span class="new">config.example.toml</span>
+        <span>config.toml</span>
+        <span class="new">tests/test_config.py</span>
+      </div>
+      <p>Load with <code>tomllib</code> into frozen dataclasses:
+      <code>AppConfig</code>, <code>MqttConfig</code>,
+      <code>InfluxWriteConfig</code>, <code>SensorSpec</code>,
+      <code>QueueConfig</code>, <code>LoggingConfig</code>,
+      <code>FileSinkConfig</code>. Credentials do <em>not</em> come from the
+      file — carry over <code>dotenv_values(path) | environ</code> from
+      <code>src/Influx_parameters.py</code> so the process environment wins,
+      which is what the systemd <code>EnvironmentFile</code> relies on.</p>
+      <pre><code>[mqtt]
+host = "192.168.1.225"
+port = 1883
+
+[[sensor]]
+name        = "water temperature techroom"
+topic       = "temp/techroom/1"
+decoder     = "scalar"
+measurement = "environment"
+field       = "watertemperature"
+cast        = "float"
+tags        = { room = "techroom" }
+
+[[sensor]]
+name            = "techroom fleet"
+topic           = "temp/+/+"
+decoder         = "scalar"
+measurement     = "environment"
+field           = "watertemperature"
+tags_from_topic = { room = 1, device = 2 }</code></pre>
+      <p>Validate at load time, each as a <code>ConfigError</code> naming the
+      field: unknown decoder name; unknown key, with the valid keys listed;
+      malformed topic filter; duplicate sensor name; out-of-range
+      <code>tags_from_topic</code> index; non-string tag value; a scalar sensor
+      declaring more than one field; a credential name appearing in
+      <code>[influx]</code>; missing credentials in the environment.</p>
+      <div class="note trap">
+        <span class="label">The one index you cannot check at startup</span>
+        <p>If a pattern ends in <code>#</code>, the topic length is unbounded, so
+        no startup check can bound the index. Validate it where you can and let
+        the runtime check in <code>tags_from_topic</code> handle the rest as a
+        per-message decode error. Knowing which invariants are checkable when is
+        most of the skill in writing a config loader.</p>
+      </div>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p>A test per <code>ConfigError</code> path above; a valid round-trip; and
+        a test that loads both <code>config.toml</code> and
+        <code>config.example.toml</code>, so the committed example can never
+        drift out of validity. <code>config.toml</code> is non-secret and safe to
+        commit — check that <code>influx.env</code> is in
+        <code>.gitignore</code> and that <code>influx.env.example</code> stays.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PHASE 3 ================= -->
+  <div class="phase">
+    <div class="phase-meta">
+      <span class="label">Phase 3</span>
+      <h2>Sinks</h2>
+    </div>
+    <p class="phase-aim">Where readings go. Start with the one that needs no
+    database, because it is also the instrument you will test the pipeline with.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-no">09</div>
+    <div class="step-body">
+      <h3>Sink protocol, stdout sink, recording sink</h3>
+      <div class="files">
+        <span class="new">mqtt_influx_bridge/sinks/__init__.py</span>
+        <span class="new">mqtt_influx_bridge/sinks/base.py</span>
+        <span class="new">mqtt_influx_bridge/sinks/stdout.py</span>
+      </div>
+      <pre><code>class Sink(Protocol):
+    def write(self, readings: Sequence[Reading]) -> None: ...
+    def close(self) -> None: ...              # must flush</code></pre>
+      <p><code>StdoutSink</code> is the <code>--dry-run</code> target.
+      <code>RecordingSink</code> keeps every reading in a list and is how
+      Step&nbsp;12 asserts on pipeline behaviour. Write both now; the second one
+      is the test instrument for the rest of the project.</p>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p><code>capsys</code> on the stdout sink; a direct list assertion on the
+        recording sink.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-no">10</div>
+    <div class="step-body">
+      <h3>The Influx sink</h3>
+      <div class="files">
+        <span class="new">mqtt_influx_bridge/sinks/influx.py</span>
+        <span class="new">tests/test_sink_influx.py</span>
+      </div>
+      <p>One long-lived <code>InfluxDBClient</code> for the process lifetime,
+      replacing the per-message client that cost a TCP — and with TLS, a
+      handshake — per reading. Build the <code>WriteApi</code> with explicit
+      <code>WriteOptions</code>.</p>
+      <ul class="plain">
+        <li>Batch size and flush interval from <code>InfluxWriteConfig</code>.</li>
+        <li><code>max_retries</code> with exponential backoff — the library's
+        retry, not yours.</li>
+        <li><code>error_callback</code> and <code>retry_callback</code> wired to
+        the logger, or asynchronous write failures are invisible.</li>
+        <li>An explicit timestamp from <code>RawMessage.received_at</code> at
+        nanosecond precision, rather than letting the server stamp it.</li>
+        <li><code>close()</code> must flush. The batching API returns
+        immediately, so an unflushed shutdown silently loses points.</li>
+      </ul>
+      <div class="note trap">
+        <span class="label">Field type conflict</span>
+        <p>If the first point ever written for <code>watertemperature</code>
+        carries an integer (<code>21</code>) and a later one a float
+        (<code>21.5</code>), InfluxDB rejects the second for the whole series.
+        This is what <code>cast = "float"</code> in the sensor config is for —
+        and why it belongs in config rather than being inferred from whatever the
+        first payload happened to look like.</p>
+      </div>
+      <div class="note verify">
+        <span class="label">Verify, without a database</span>
+        <p>Assert on the rendered line protocol string for a known
+        <code>Reading</code> — measurement, tag set, field set and the explicit
+        nanosecond timestamp. The real database comes in Step&nbsp;16.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-no">11</div>
+    <div class="step-body">
+      <h3>The file sink</h3>
+      <div class="files">
+        <span class="new">mqtt_influx_bridge/sinks/file.py</span>
+        <span class="gone">MQTT.file_output</span>
+      </div>
+      <p>Replaces <code>MQTT.file_output</code>, keeping the dated-filename
+      behaviour (<code>logfile_20261108.txt</code>) if you want it. Small step,
+      and a clean demonstration that a sink is pluggable: the pipeline needs no
+      change to gain one.</p>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p>Write to a <code>tmp_path</code> and read the lines back. Confirm
+        <code>close()</code> leaves no buffered content.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PHASE 4 ================= -->
+  <div class="phase">
+    <div class="phase-meta">
+      <span class="label">Phase 4</span>
+      <h2>The pipeline</h2>
+    </div>
+    <p class="phase-aim">The middle of the diagram, and the heart of the
+    reliability story: a bounded queue, a writer thread, and one
+    <code>try/except</code> per message. Still no broker.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-no">12</div>
+    <div class="step-body">
+      <h3>Router, queue, writer thread</h3>
+      <div class="files">
+        <span class="new">mqtt_influx_bridge/pipeline.py</span>
+        <span class="new">tests/test_pipeline.py</span>
+      </div>
+      <p>Build the router once at startup from the sensor specs. Note that
+      <code>match()</code> returns <em>all</em> matching routes, not the first: a
+      broad pattern and a specific one can legitimately both cover one topic.</p>
+      <pre><code>class Router:
+    def match(self, topic: str) -> list[Route]: ...
+    def subscriptions(self) -> set[str]: ...   # deduplicated patterns
+
+class Pipeline:
+    def submit(self, msg: RawMessage) -> None: ...   # called from any thread
+    def start(self) -> None: ...
+    def stop(self, drain: bool = True) -> None: ...</code></pre>
+      <p>Then the writer loop, which does all the work the old
+      <code>on_message</code> did inline:</p>
+      <ul class="plain">
+        <li>Take a <code>RawMessage</code> off the queue, find its routes, decode
+        each one.</li>
+        <li>Merge tags: static <code>tags</code> from config, then
+        <code>tags_from_topic</code>. Decoders contribute none.</li>
+        <li>Wrap each message in its own <code>try/except</code>. Log the topic
+        and a payload excerpt, increment a counter, continue. One malformed
+        message must never end the loop.</li>
+        <li>Wrap each <em>sink</em> too: one failing sink must not stop the
+        others from receiving the reading.</li>
+        <li><code>submit</code> uses <code>put_nowait</code> and handles
+        <code>queue.Full</code> by counting the drop and logging once per
+        congestion episode — never by blocking. Blocking here would block the
+        broker's network thread, which is the exact failure the queue exists to
+        prevent.</li>
+      </ul>
+      <div class="note learn">
+        <span class="label">Why the queue is not incidental</span>
+        <p>The old code called <code>write_api.write()</code> directly inside
+        paho's callback, so an unreachable database stalled the MQTT loop. The
+        queue is the seam that decouples broker speed from database speed. Pick
+        the overflow policy deliberately: dropping newest is simple and keeps the
+        producer free, and for telemetry it is usually right.</p>
+      </div>
+      <div class="note verify">
+        <span class="label">Verify — the tests that were impossible before</span>
+        <p>With a <code>RecordingSink</code> and direct <code>submit()</code>
+        calls: exact readings arrive; tags merge in the right precedence; one
+        wildcard sensor covers a fleet; one bad message does not stop the rest; a
+        failing sink does not lose the others; <code>queue.Full</code> counts
+        drops without raising; <code>stop()</code> drains. None of this was
+        testable while <code>subscribe()</code> blocked forever in
+        <code>loop_forever()</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-no">13</div>
+    <div class="step-body">
+      <h3>Shutdown and counters</h3>
+      <div class="files">
+        <span>mqtt_influx_bridge/pipeline.py</span>
+        <span>tests/test_pipeline.py</span>
+      </div>
+      <p>Finish <code>stop()</code>: signal the writer thread (a sentinel on the
+      queue is the simplest correct method), drain what is queued, then flush and
+      close every sink in order. Expose the counters you have been incrementing —
+      messages in, readings out, decode errors, dropped — and log them once at
+      shutdown.</p>
+      <div class="note learn">
+        <span class="label">Why order matters here</span>
+        <p>The unit is <code>Restart=always</code>, so this path runs on every
+        deploy and every config change. Stop ingest first, then drain, then
+        flush: any other order loses points. Those counters are also the only way
+        you will ever notice a decoder quietly failing on 2% of messages.</p>
+      </div>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p>Submit N messages, call <code>stop()</code> immediately, assert the
+        recording sink received all N. Then assert a second <code>stop()</code>
+        is harmless.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PHASE 5 ================= -->
+  <div class="phase">
+    <div class="phase-meta">
+      <span class="label">Phase 5</span>
+      <h2>The source</h2>
+    </div>
+    <p class="phase-aim">Now the broker. One step, and the smallest file that
+    touches the network — because reconnection is paho's job, not yours.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-no">14</div>
+    <div class="step-body">
+      <h3>The paho source</h3>
+      <div class="files">
+        <span class="new">mqtt_influx_bridge/sources/__init__.py</span>
+        <span class="new">mqtt_influx_bridge/sources/base.py</span>
+        <span class="new">mqtt_influx_bridge/sources/mqtt.py</span>
+        <span class="new">tests/test_source_mqtt.py</span>
+      </div>
+      <pre><code>class Source(Protocol):
+    def start(self, on_message: Callable[[RawMessage], None]) -> None: ...
+    def stop(self) -> None: ...</code></pre>
+      <p>Keep <code>on_message</code> to two statements: stamp
+      <code>datetime.now(UTC)</code> and hand the <code>RawMessage</code> to the
+      callback. Nothing else belongs on the network thread.</p>
+      <ul class="plain">
+        <li><code>reconnect_delay_set(min_delay, max_delay)</code> for exponential
+        backoff.</li>
+        <li><code>connect_async</code> + <code>loop_start</code> instead of
+        <code>connect</code> + <code>loop_forever</code>, so a broker that is down
+        at startup is retried rather than fatal — and so <code>start()</code>
+        returns and the process can own its own shutdown.</li>
+        <li>Issue <code>subscribe()</code> inside <code>on_connect</code>, using
+        <code>router.subscriptions()</code>. The old code had this right; keep it.
+        It is what makes a reconnect renew subscriptions automatically.</li>
+        <li>Log the reason code on <code>on_connect</code> and
+        <code>on_disconnect</code>.</li>
+      </ul>
+      <div class="note verify">
+        <span class="label">Verify, without a broker</span>
+        <p>Construct the source, then call its paho callbacks directly with a
+        fake client and a stub message object. Drive the whole path — source,
+        queue, writer, recording sink — and assert the reading arrives. Call
+        <code>on_connect</code> twice and assert <code>subscribe</code> was called
+        both times, which is the reconnect behaviour.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PHASE 6 ================= -->
+  <div class="phase">
+    <div class="phase-meta">
+      <span class="label">Phase 6</span>
+      <h2>Wire, prove, deploy</h2>
+    </div>
+    <p class="phase-aim">Assemble it, run it against the real broker and the real
+    database, put it on the host, and then demonstrate the goal: a new sensor
+    with no Python.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-no">15</div>
+    <div class="step-body">
+      <h3>Wiring, CLI, signals, logging</h3>
+      <div class="files">
+        <span>mqtt_influx_bridge/__main__.py</span>
+        <span class="new">mqtt_influx_bridge/_lib/</span>
+      </div>
+      <p>Replace the Step&nbsp;1 stub with the real <code>main()</code>:
+      <code>--config</code>, <code>--dry-run</code>, <code>--debug</code> — a real
+      <code>ArgumentParser</code>, which this repo has never had despite shipping
+      a parser module. Load config, set up logging, build sinks, pipeline and
+      source, install signal handlers, then block until signalled.</p>
+      <ul class="plain">
+        <li>Copy <code>_lib/logger.py</code> and <code>_lib/ConfigToml.py</code>
+        across, and change the logging default to <strong>stdout</strong> so
+        journald captures it. Keep the file mode as an option.</li>
+        <li><code>SIGTERM</code> and <code>SIGINT</code> both set an event; the
+        main thread then calls <code>source.stop()</code>,
+        <code>pipeline.stop(drain=True)</code>, and closes the sinks — in that
+        order.</li>
+        <li><code>--dry-run</code> swaps the Influx sink for the stdout sink and
+        nothing else. It is the fastest way to debug a new sensor's config.</li>
+      </ul>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p><code>uv run mqtt-influx-bridge --help</code>, then
+        <code>--dry-run</code> against the live broker, then
+        <kbd>Ctrl-C</kbd>: expect a clean drain and no traceback.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-no">16</div>
+    <div class="step-body">
+      <h3>Integration: the seven checks</h3>
+      <div class="files">
+        <span>broker · InfluxDB</span>
+      </div>
+      <p>Unit tests cannot cover any of these. Run them in order; each one
+      exercises a reliability claim from the architecture.</p>
+      <ul class="plain">
+        <li><strong>Dry run.</strong> <code>--dry-run</code>, then
+        <code>mosquitto_pub -h 192.168.1.225 -t temp/techroom/1 -m '{"temp":21.5}'</code>
+        — the decoded reading prints, nothing is written.</li>
+        <li><strong>Real write.</strong> Same without <code>--dry-run</code>, then
+        confirm in Influx:
+        <code>from(bucket:"…") |&gt; range(start:-5m) |&gt; filter(fn:(r) =&gt; r._measurement == "environment")</code>
+        shows <code>watertemperature</code> tagged <code>room=techroom</code>.</li>
+        <li><strong>Database outage.</strong> Stop InfluxDB mid-run and publish:
+        expect retry and backoff logs, no crash. Restart it and confirm the
+        buffered points land.</li>
+        <li><strong>Broker outage.</strong> Stop the broker mid-run: expect
+        reconnect-backoff logs, then automatic resubscribe and resumed writes.</li>
+        <li><strong>Garbage payload.</strong> <code>-m 'garbage'</code> — one
+        warning naming the topic, service still alive. This is the failure that
+        killed the old service.</li>
+        <li><strong>Second sensor.</strong> Add a <code>[[sensor]]</code> block,
+        restart, confirm both topics write. No Python touched.</li>
+        <li><strong>Fleet.</strong> A wildcard sensor with
+        <code>tags_from_topic</code> across several device numbers.</li>
+      </ul>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p>All seven pass against live infrastructure, and
+        <code>uv run pytest</code> is still green.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-no">17</div>
+    <div class="step-body">
+      <h3>Deploy and retire the old code</h3>
+      <div class="files">
+        <span>mqtt_influxDB_converter.service</span>
+        <span>README.md</span>
+        <span class="gone">src/</span>
+        <span class="gone">main.py</span>
+      </div>
+      <p>Only now delete <code>src/</code> and <code>main.py</code>. The unit file
+      needs four changes:</p>
+      <ul class="plain">
+        <li><code>ExecStart</code> → the console script in the venv's
+        <code>bin/</code>, not <code>main.py</code>. Add
+        <code>--config /etc/automation/config.toml</code>.</li>
+        <li><code>KillSignal=SIGTERM</code> and
+        <code>TimeoutStopSec=30</code>, so the drain in Step&nbsp;13 has room to
+        finish before systemd kills the process.</li>
+        <li><code>ProtectSystem=strict</code> stays; drop the
+        <code>ReadWritePaths=/root/logs/</code> if you have moved logging to
+        stdout.</li>
+        <li><code>EnvironmentFile=/etc/automation/influx.env</code> stays — it is
+        already correct, and is now the <em>only</em> way credentials reach the
+        process.</li>
+      </ul>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p><code>systemctl restart mqtt_influxDB_converter</code>, then
+        <code>journalctl -u mqtt_influxDB_converter -f</code>: a clean startup, a
+        drained shutdown, no traceback. Then update the README to describe
+        <code>config.toml</code> rather than editing Python.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-no">18</div>
+    <div class="step-body">
+      <h3>Prove the goal</h3>
+      <div class="files">
+        <span>config.toml</span>
+      </div>
+      <p>Add the Shelly power meter from the <code>experiments</code> branch as a
+      <code>[[sensor]]</code> block using the <code>json</code> decoder, with
+      three fields. Restart. Confirm both sensors write.</p>
+      <div class="note learn">
+        <span class="label">What you just demonstrated</span>
+        <p>A whole second sensor, in a different payload format, in a
+        configuration file, with no Python written and no fork of the repo. That
+        is the thing the old design could not do — and the reason the
+        <code>experiments</code> branch existed. You can now delete it.</p>
+      </div>
+      <div class="note verify">
+        <span class="label">Verify</span>
+        <p>Both measurements present in Influx over the same five-minute window.</p>
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="section-head">
+      <span class="label">Finish line</span>
+      <h2>Done when</h2>
+      <p>The checkboxes are for your own tracking as you work; they are not saved
+      anywhere.</p>
+    </div>
+    <div class="done">
+      <label><input type="checkbox" id="d1"><span><code>uv run pytest</code> passes with no broker, no database and no event loop running.</span></label>
+      <label><input type="checkbox" id="d2"><span>Every <code>ConfigError</code> path in Step&nbsp;8 has a test that asserts the field name appears in the message.</span></label>
+      <label><input type="checkbox" id="d3"><span>A malformed payload produces one log line and the service keeps running.</span></label>
+      <label><input type="checkbox" id="d4"><span>Both the broker and InfluxDB can be stopped and restarted mid-run without a crash or lost points.</span></label>
+      <label><input type="checkbox" id="d5"><span>Adding a sensor touches only <code>config.toml</code>.</span></label>
+      <label><input type="checkbox" id="d6"><span>Adding a payload format touches one file in <code>decoders/</code> plus one import.</span></label>
+      <label><input type="checkbox" id="d7"><span><code>src/</code>, <code>main.py</code> and the <code>experiments</code> branch are gone.</span></label>
+      <label><input type="checkbox" id="d8"><span>No file path or credential appears anywhere in the Python source.</span></label>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <span class="label">If you get stuck</span>
+      <h2>Three places this plan is likely to bend</h2>
+    </div>
+    <div class="howto">
+      <div>
+        <span class="k">→</span>
+        <p><strong>Step 8 is big.</strong> If the config loader starts to sprawl,
+        split it: parse into dataclasses first, validate in a second pass. The
+        tests stay the same either way.</p>
+      </div>
+      <div>
+        <span class="k">→</span>
+        <p><strong>Step 12 is the hard one.</strong> Threads plus error isolation
+        plus tag merging in one file. If it fights you, get the single-threaded
+        path green first — call the writer loop's body directly from a test — and
+        only then start the thread.</p>
+      </div>
+      <div>
+        <span class="k">→</span>
+        <p><strong>Don't add asyncio.</strong> It will be tempting around
+        Step&nbsp;14.
+        <a href="ARCHITECTURE.md">ARCHITECTURE.md</a> has the full argument; the
+        short version is that N sensors share one MQTT connection and one batched
+        database connection, so there are two I/O endpoints whether N is 1 or 500.
+        Revisit it only if sensors ever need active polling on independent
+        timers.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Implementation plan for <strong>mqtt_influxDB_converter</strong> · target design in <a href="ARCHITECTURE.md">ARCHITECTURE.md</a></p>
+    <p>18 steps · Phases 0–3 need no infrastructure · drafted 8 November 2026</p>
+  </div>
+</footer>
+
+</body>
+</html>
