@@ -1,3 +1,5 @@
+from collections.abc import Mapping, Sequence
+from .errors import TagIndexError
 
 def topic_matches(pattern: str, topic: str) -> bool:
     p_level = pattern.split("/")
@@ -29,5 +31,14 @@ def topic_matches(pattern: str, topic: str) -> bool:
     return len(p_level) == len(t_level)
 
 
-def tags_from_topic():
-    pass
+def tags_from_topic(topic: str, mapping: Mapping[str, int]) -> dict[str, str]:
+    tags: dict[str, str] = {}
+    levels:Sequence[str] = topic.split("/")
+    for key, index in mapping.items():
+        if index < 0 or index >= len(levels):
+            raise TagIndexError(
+                f"tags_from_topic[{key!r}] = {index} is out of range for "
+                f"topic {topic!r} ({len(levels)} levels)"
+            )
+        tags[key] = levels[index]
+    return tags

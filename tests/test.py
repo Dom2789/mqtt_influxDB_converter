@@ -1,6 +1,5 @@
-from mqtt_influx_bridge.routing import topic_matches
+from mqtt_influx_bridge.routing import tags_from_topic
 
 
-case = ("temp/techroom/1", "temp/techroom/1", True)
-
-print(topic_matches(case[0], case[1]))
+print(tags_from_topic("temp/techroom/1", {"room": 1, "device": 2}))
+print(tags_from_topic("temp/techroom/1", {"room": 1, "missing": 9}))

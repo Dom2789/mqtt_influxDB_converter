@@ -74,7 +74,7 @@ def test_topic_matches(pattern, topic, expected):
     # match object or an int would pass '==' and fail here.
     assert topic_matches(pattern, topic) is expected
 
-"""
+
 # --------------------------------------------------------------------------
 # tags_from_topic
 # --------------------------------------------------------------------------
@@ -125,4 +125,3 @@ def test_wildcard_tail_is_only_checkable_at_runtime():
     # topic arriving under 'temp/#' therefore has to fail here, not at startup.
     with pytest.raises(OUT_OF_RANGE):
         tags_from_topic("temp", {"device": 2})
-"""

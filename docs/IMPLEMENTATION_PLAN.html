@@ -563,15 +563,17 @@ dev = ["pytest&gt;=8"]</code></pre>
   <div class="step">
     <div class="step-no">02</div>
     <div class="step-body">
-      <h3>The two core types</h3>
+      <h3>The two core types and the error base</h3>
       <div class="files">
         <span class="new">mqtt_influx_bridge/model.py</span>
+        <span class="new">mqtt_influx_bridge/errors.py</span>
         <span class="new">tests/test_model.py</span>
       </div>
       <div class="approach">
         <span class="label">Approach</span>
         <ol>
         <li>Standard-library imports only: <code>dataclass</code>, <code>datetime</code>, <code>Mapping</code>. If you find yourself importing anything else, something belongs in a later step.</li>
+        <li><code>errors.py</code> imports nothing at all. Every later module imports <em>from</em> it, so it must stay at the bottom of the dependency graph.</li>
         <li>Stamp <code>received_at</code> with <code>datetime.now(UTC)</code>. Not <code>utcnow()</code> — it is deprecated on 3.12 and hands back a naive value that will write points at the wrong time.</li>
         <li>Write the first test: build each type, then assert that assignment raises <code>FrozenInstanceError</code>.</li>
         <li>Expect a consequence in Step&nbsp;12: because these are frozen, merging tags means <code>dataclasses.replace(reading, tags=…)</code>, never assignment.</li>
@@ -593,6 +595,30 @@ class Reading:
     fields: Mapping[str, float | int | str | bool]
     tags: Mapping[str, str]
     timestamp: datetime</code></pre>
+
+      <p>Then <code>errors.py</code>: one root exception, and the first leaf
+      under it. Later steps add siblings — a decode failure in Step&nbsp;6, a
+      config failure in Step&nbsp;8 — but they all hang here.</p>
+      <pre><code>class BridgeError(Exception):
+    """Base for all expected, per-message failures in the bridge."""
+
+class TagIndexError(BridgeError):
+    """A [[sensor]] tag index doesn't fit the topic it was applied to."""</code></pre>
+      <div class="note learn">
+        <span class="label">Why a root exception, and why not <code>IndexError</code></span>
+        <p>Step&nbsp;12 wraps each message in a <code>try/except</code> and drops
+        the message on failure. That handler is only safe if the exception it
+        catches means exactly one thing: <em>a failure this bridge anticipates</em>.
+        <code>except IndexError</code> or <code>except ValueError</code> there
+        would also swallow a genuine off-by-one or a stray
+        <code>float(payload)</code> in your own pipeline code, silently dropping
+        messages for a reason that has nothing to do with the data.
+        <code>except BridgeError</code> cannot: anything unanticipated
+        propagates and crashes loudly, which is what you want from a real bug.
+        For the same reason <code>TagIndexError</code> must <em>not</em> subclass
+        <code>IndexError</code> — the whole point is to sit outside the branch
+        where accidental indexing bugs land.</p>
+      </div>
       <div class="note learn">
         <span class="label">Why</span>
         <p><code>Reading</code> is deliberately not an Influx <code>Point</code>.
@@ -605,7 +631,11 @@ class Reading:
       <div class="note verify">
         <span class="label">Verify</span>
         <p>A test that constructs both and asserts <code>FrozenInstanceError</code>
-        on assignment. Trivial, but it is your first green test.</p>
+        on assignment. Trivial, but it is your first green test. Add one line
+        that pins the hierarchy —
+        <code>assert issubclass(TagIndexError, BridgeError)</code> and
+        <code>assert not issubclass(TagIndexError, IndexError)</code> — so a
+        later refactor cannot quietly re-break Step&nbsp;12's handler.</p>
       </div>
     </div>
   </div>
@@ -679,7 +709,9 @@ class Reading:
         <ol>
         <li>Take the topic plus a <code>{tag_name: level_index}</code> mapping and return a plain <code>dict[str, str]</code>.</li>
         <li>Split once, index into the levels, and keep every value a string — Influx tag values are strings by definition, so cast rather than hope.</li>
-        <li>On an out-of-range index, raise rather than return a partial dict. Step&nbsp;12 then logs it and drops that one message instead of writing a reading with a missing identity.</li>
+        <li>On an unusable index, raise <code>TagIndexError</code> from Step&nbsp;2 rather than return a partial dict. Step&nbsp;12 then logs it and drops that one message instead of writing a reading with a missing identity.</li>
+        <li>Check <code>index &lt; 0</code> explicitly. Python's own bounds check only guards one end: <code>levels[-1]</code> does not raise, it returns the last level.</li>
+        <li>Put the index, the tag name, the topic and the actual level count in the message. It is the only diagnostic the Step&nbsp;12 log line will carry.</li>
         </ol>
       </div>
 
@@ -687,8 +719,20 @@ class Reading:
       turning topic levels into tag values: with <code>{"room": 1, "device": 2}</code>,
       the topic <code>temp/techroom/1</code> yields
       <code>{"room": "techroom", "device": "1"}</code>.</p>
-      <p>An out-of-range index must raise something the pipeline can catch and
-      log per message, not crash the thread.</p>
+      <p>An unusable index must raise <code>TagIndexError</code>, which the
+      pipeline can catch and log per message rather than crash the thread.</p>
+      <div class="note trap">
+        <span class="label">Trap</span>
+        <p>A negative index is the dangerous case, not the too-large one.
+        <code>{"room": 7}</code> on a three-level topic raises on its own;
+        <code>{"room": -1}</code> is a config typo that quietly tags
+        <code>room="1"</code> and writes a wrong-but-plausible series into
+        Influx forever. Nothing alerts and the points cannot be corrected
+        afterwards, so the check is cheaper than the cleanup. The negative test
+        depends only on the mapping, so Step&nbsp;8 can also reject it at config
+        load and fail at startup; the range check cannot move, because with
+        <code>temp/#</code> the level count varies per message.</p>
+      </div>
       <div class="note learn">
         <span class="label">Why this earns its keep</span>
         <p>This is the mechanism that makes one <code>[[sensor]]</code> block
@@ -699,8 +743,9 @@ class Reading:
       </div>
       <div class="note verify">
         <span class="label">Verify</span>
-        <p>Tests for the happy path, an index past the end of the topic, and
-        index&nbsp;0.</p>
+        <p>Tests for the happy path, index&nbsp;0, an index past the end of the
+        topic, and a negative index — the last two both
+        <code>pytest.raises(TagIndexError)</code>.</p>
       </div>
     </div>
   </div>
@@ -1092,9 +1137,11 @@ class Pipeline:
         each one.</li>
         <li>Merge tags: static <code>tags</code> from config, then
         <code>tags_from_topic</code>. Decoders contribute none.</li>
-        <li>Wrap each message in its own <code>try/except</code>. Log the topic
-        and a payload excerpt, increment a counter, continue. One malformed
-        message must never end the loop.</li>
+        <li>Wrap each message in its own <code>try/except BridgeError</code> —
+        the root from Step&nbsp;2, not <code>Exception</code>. Log the topic and
+        a payload excerpt, increment a counter, continue. One malformed message
+        must never end the loop, and one unanticipated bug must never be
+        mistaken for one.</li>
         <li>Wrap each <em>sink</em> too: one failing sink must not stop the
         others from receiving the reading.</li>
         <li><code>submit</code> uses <code>put_nowait</code> and handles
