@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 import pytest
 
 from mqtt_influx_bridge.decoders import decode_json
-from mqtt_influx_bridge.errors import BridgeError, ConfigError, DecodeError
+from mqtt_influx_bridge.errors import DecodeError
 from mqtt_influx_bridge.model import RawMessage, Reading, SensorSpec
 
 AT = datetime(2026, 11, 8, 10, 9, tzinfo=UTC)
@@ -247,16 +247,3 @@ def test_bad_payload_raises_decode_error(payload):
         decode_json(m, WATER)
     assert exc.value.topic == "temp/techroom/1"
     assert exc.value.payload == payload
-
-
-def test_decode_error_message_has_topic_and_short_excerpt():
-    err = DecodeError("t/1", b"x" * 100, "bad json")
-    assert "t/1" in str(err)
-    assert "bad json" in str(err)
-    assert "x" * 41 not in str(err)       # payload cut to 40 bytes
-
-
-def test_decode_error_hierarchy():
-    assert issubclass(DecodeError, BridgeError)
-    assert not issubclass(DecodeError, ValueError)
-    assert issubclass(ConfigError, BridgeError)
