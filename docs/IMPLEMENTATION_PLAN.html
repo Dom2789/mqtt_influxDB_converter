@@ -895,18 +895,15 @@ topic_matches_sub("#", "$SYS/broker/load")      # False — wildcards skip $-top
         <li><code>json.loads</code> the payload, then look up each key named in the spec's <code>fields</code> table. A key containing <code>.</code> is a path: <code>key.split(".")</code> and walk dicts, one <code>get</code> per segment. Dicts only — no list indexing.</li>
         <li>A segment that is missing, or that resolves to <code>null</code>, <strong>skips that field</strong> — it does not raise. This is now a decision, not a free choice; see <em>Missing fields are skipped</em> below. A payload that yields no fields at all produces no <code>Reading</code>.</li>
         <li>Cast every surviving value with the spec's <code>cast</code>, then return one <code>Reading</code> carrying all the fields, with <code>tags</code> left empty — Step&nbsp;07 fills them.</li>
-        <li>Validate the options in <code>__init__</code>, not in <code>decode</code>: the decoder is built once at config load in Step&nbsp;05, so a broken spec is a startup error.</li>
+        <li>A plain function, not a class: it keeps no state, and everything it needs — <code>fields</code>, <code>cast</code>, <code>measurement</code> — arrives in the <code>SensorSpec</code> on every call. A broken spec is still a startup error, because Step&nbsp;05 validates it while building the <code>SensorSpec</code>.</li>
         <li>Catch every failure and re-raise as <code>DecodeError</code>. No <code>JSONDecodeError</code>, <code>ValueError</code>, <code>KeyError</code> or <code>UnicodeDecodeError</code> may escape this class.</li>
         </ol>
       </div>
 
-      <p>One class, two methods, one payload format — the one every sensor you
+      <p>One function, one payload format — the one every sensor you
       own actually sends, the water probe and all three Shellys.</p>
-      <pre><code>class JsonDecoder:
-    def __init__(self, options: Mapping[str, Any]) -> None:
-        ...        # reject bad options HERE, at startup
-    def decode(self, msg: RawMessage, spec: SensorSpec) -> list[Reading]:
-        ...        # tags stay empty; the handler merges them</code></pre>
+      <pre><code>def decode_json(msg: RawMessage, spec: SensorSpec) -> list[Reading]:
+    ...        # tags stay empty; the handler merges them</code></pre>
       <p>The <code>fields</code> table maps the Influx field name to the JSON key,
       which may be a dotted path into nested objects:</p>
       <pre><code># water temperature: {"temp": 21.5}
@@ -957,21 +954,22 @@ class ConfigError(BridgeError):
     """A config file that cannot produce a working bridge."""</code></pre>
       <div class="note learn">
         <span class="label">One decoder, so no selection mechanism</span>
-        <p>There is nothing here to register, name or look up: Step&nbsp;05 builds
-        a <code>JsonDecoder</code> and Step&nbsp;07 calls it. When a genuinely
-        non-JSON sensor turns up, the second format costs one class in this file,
+        <p>There is nothing here to register, name or look up: Step&nbsp;07 calls
+        <code>decode_json</code> directly. When a genuinely
+        non-JSON sensor turns up, the second format costs one function in this file,
         a two-entry dict beside it, and a <code>decoder = "…"</code> key in
         <code>SensorSpec</code> — one small step, written down here so that it is
         not a surprise. What it does <em>not</em> cost is a decorator, a module
-        registry or a <code>Protocol</code>: with two classes in one file, a dict
+        registry or a <code>Protocol</code>: with two functions in one file, a dict
         literal is the whole mechanism, and it cannot be emptied by a linter
         dropping an import the way a registry can.</p>
       </div>
       <div class="note trap">
         <span class="label">Where <code>SensorSpec</code> lives, and why</span>
         <p>Put it in <code>model.py</code>, not <code>config.py</code>.
-        <code>config</code> imports <code>decoders</code> to build the decoder at
-        load time; if <code>decoders</code> imported <code>SensorSpec</code> back
+        <code>decoders</code> needs <code>SensorSpec</code>, and once a second format
+        exists <code>config</code> imports <code>decoders</code> to look the function
+        up by name; if <code>decoders</code> imported <code>SensorSpec</code> back
         from <code>config</code>, that is a cycle, and you would be reaching for
         <code>if TYPE_CHECKING:</code> to paper over it. In
         <code>model.py</code> the graph stays a line —
@@ -1062,7 +1060,7 @@ class ConfigError(BridgeError):
         <code>on_time</code> = 870.0 present, <code>temperature</code> absent.</li>
         <li>the Plug M → <code>temperature</code> = 37.8 from
         <code>temperature.tC</code>, <code>pf</code> absent.</li>
-        <li>the Dimmer → five fields, with <code>freq</code> among the skipped
+        <li>the Dimmer → seven fields, with <code>freq</code> among the skipped
         ones. This is the case that stops anyone from "optimising" the skip rule
         into a required-core/optional-extra split later.</li>
         <li>a path whose <em>parent</em> is missing (<code>counts.on_time</code> on
@@ -1098,7 +1096,7 @@ class ConfigError(BridgeError):
         <li><code>tomllib.load</code>, then build innermost-first: <code>SensorSpec</code> objects, then <code>MqttConfig</code> and <code>InfluxWriteConfig</code>, then <code>AppConfig</code> around them. Four dataclasses, not seven — log level and the rest of the scalars are plain fields on <code>AppConfig</code>.</li>
         <li>Validate as you build, not in a second pass over raw dicts. That way every <code>ConfigError</code> can name both the sensor and the field it came from.</li>
         <li>Catch unknown keys by diffing each TOML table's keys against the dataclass field names, and list the valid ones in the message. This is the one validation that catches a silent typo rather than a loud one.</li>
-        <li>Build each sensor's <code>JsonDecoder</code> here, so a bad <code>fields</code> table is a startup error and Step&nbsp;07 never constructs anything per message.</li>
+        <li>Check each sensor's <code>fields</code> table (a non-empty table of strings) and <code>cast</code> (one of <code>float</code>, <code>int</code>, <code>str</code>, <code>bool</code>) while building its <code>SensorSpec</code>, so a bad one is a startup error.</li>
         <li>Load credentials on a separate path — <code>dotenv_values(path) | environ</code> — and assert all four are present before anything tries to connect.</li>
         </ol>
       </div>
@@ -1292,15 +1290,15 @@ tags_from_topic = { room = 1, device = 2, channel = 4 }
       <div class="approach">
         <span class="label">Approach</span>
         <ol>
-        <li>Build the <code>Router</code> first and test it alone. It holds the sensor specs and the decoders built in Step&nbsp;05 — one decoder per sensor, at startup, never per message.</li>
-        <li><code>match()</code> uses paho's <code>topic_matches_sub</code> and returns <em>all</em> matching routes, not the first: a broad pattern and a specific one can legitimately both cover one topic.</li>
+        <li>Build the <code>Router</code> first and test it alone. It holds the sensor specs built in Step&nbsp;05; <code>handle()</code> calls <code>decode_json</code> on each match.</li>
+        <li><code>match()</code> uses paho's <code>topic_matches_sub</code> and returns <em>all</em> matching specs, not the first: a broad pattern and a specific one can legitimately both cover one topic.</li>
         <li>Then <code>handle()</code> — a plain function, called on paho's network thread, that does everything the old <code>on_message</code> did inline.</li>
         <li>Keep the counters as plain ints on a small dataclass. paho's <code>loop_start</code> runs one network thread, so <code>handle</code> has exactly one caller and no lock is needed — worth knowing <em>why</em> rather than adding one reflexively.</li>
         </ol>
       </div>
 
       <pre><code>class Router:
-    def match(self, topic: str) -> list[Route]: ...   # Route = spec + decoder
+    def match(self, topic: str) -> list[SensorSpec]: ...  # all matching specs
     def subscriptions(self) -> set[str]: ...          # deduplicated patterns
 
 def handle(msg: RawMessage, router: Router,
@@ -1308,7 +1306,7 @@ def handle(msg: RawMessage, router: Router,
     ...</code></pre>
       <p>What <code>handle</code> does, in order:</p>
       <ul class="plain">
-        <li>Find the routes for the topic; for each, decode the payload.</li>
+        <li>Find the matching specs for the topic; for each, call <code>decode_json</code>.</li>
         <li>Merge tags onto each reading: static <code>tags</code> from config,
         then <code>tags_from_topic</code>. The decoder contributes none, so this
         is the only place tags are set — and because <code>Reading</code> is
@@ -1586,7 +1584,7 @@ def handle(msg: RawMessage, router: Router,
       <label><input type="checkbox" id="d3"><span>A malformed payload produces one log line and the service keeps running.</span></label>
       <label><input type="checkbox" id="d4"><span>Both the broker and InfluxDB can be stopped and restarted mid-run without a crash or lost points.</span></label>
       <label><input type="checkbox" id="d5"><span>Adding a sensor touches only <code>config.toml</code>.</span></label>
-      <label><input type="checkbox" id="d6"><span>Adding a payload format touches one class in <code>decoders.py</code> and nothing else that already works.</span></label>
+      <label><input type="checkbox" id="d6"><span>Adding a payload format touches one function in <code>decoders.py</code> and nothing else that already works.</span></label>
       <label><input type="checkbox" id="d7"><span>Every leaf exception subclasses <code>BridgeError</code>, and none of them subclasses <code>ValueError</code>, <code>KeyError</code> or <code>IndexError</code>.</span></label>
       <label><input type="checkbox" id="d8"><span><code>threading</code> appears in the source exactly once — the shutdown <code>Event</code> in <code>__main__.py</code>.</span></label>
       <label><input type="checkbox" id="d9"><span><code>src/</code>, <code>main.py</code>, the four empty sub-packages and the <code>experiments</code> branch are gone.</span></label>
