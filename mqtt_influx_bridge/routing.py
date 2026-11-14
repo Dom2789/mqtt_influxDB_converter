@@ -37,6 +37,7 @@ def tags_from_topic(topic: str, mapping: Mapping[str, int]) -> dict[str, str]:
     for key, index in mapping.items():
         if index < 0 or index >= len(levels):
             raise TagIndexError(
+                # The three flags are !s (str, the default), !r (repr), !a (ascii — repr with non-ASCII escaped).
                 f"tags_from_topic[{key!r}] = {index} is out of range for "
                 f"topic {topic!r} ({len(levels)} levels)"
             )

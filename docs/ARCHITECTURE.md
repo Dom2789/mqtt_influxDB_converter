@@ -225,7 +225,7 @@ and the `Source` protocol is the seam where that would plug in.
   `experiments` branch, dotted paths, missing keys, null and non-scalar values,
   non-UTF-8 payloads, uncastable values, and bad decoder options rejected at
   construction. Each expects a handled `DecodeError` rather than a traceback.
-- `config` — valid round-trip; `config.toml` and `config.example.toml` both load;
+- `config` — valid round-trip; `config.toml` and `config.toml.example` both load;
   every `ConfigError` path listed under [Configuration](#configuration); and the
   env-file precedence rule.
 - `pipeline` — a recording sink plus direct message injection: the exact

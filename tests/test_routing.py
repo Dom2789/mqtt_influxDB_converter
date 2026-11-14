@@ -9,12 +9,13 @@ Wildcard rules follow the MQTT v5 spec, section 4.7 (Topic Names and Filters).
 
 import pytest
 
+from mqtt_influx_bridge.errors import TagIndexError
 from mqtt_influx_bridge.routing import tags_from_topic, topic_matches
 
 # What tags_from_topic raises when a tag points at a topic level that isn't
-# there. Step 12 catches this per message and drops that one reading. If you'd
-# rather raise a dedicated routing error, this is the only line to change.
-OUT_OF_RANGE = IndexError
+# there. Step 07 catches this per message and drops that one reading. It must
+# NOT be IndexError: see Step 02 on why the handler catches BridgeError only.
+OUT_OF_RANGE = TagIndexError
 
 
 # --------------------------------------------------------------------------

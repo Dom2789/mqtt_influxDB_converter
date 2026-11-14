@@ -1,0 +1,14 @@
+// Plug PM Gen3
+[10:09:00][powermeter/serverraum/rack/status/pm1:0] {"id":0, "voltage":225.1, "current":0.194, "apower":21.7 ,"freq":49.9,"aenergy":{"total":40503.682,"by_minute":[210.574,210.574,421.148],"minute_ts":1794647340},"ret_aenergy":{"total":0.000,"by_minute":[0.000,0.000,0.000],"minute_ts":1794647340}}
+
+// Power Strip 4 Gen4
+[10:09:00][powermeter/serverraum/strip/status/switch:0] {"id":0,"source":"init","tag":null, "output":false, "apower":0.0, "voltage":225.8, "freq":50.0, "current":0.000, "pf":0.00, "aenergy":{"total":3.045,"by_minute":[0.000,0.000,0.000],"minute_ts":1794647280}, "ret_aenergy":{"total":0.000,"by_minute":[0.000,0.000,0.000],"minute_ts":1794647280},"counts":{"on_time":870,"on_time_rst_ts":0,"switch_on":10,"switch_on_rst_ts":0,"on_above_thr":0,"on_above_thr_rst_ts":0}}
+
+[10:09:00][powermeter/serverraum/strip/status/switch:1] {"id":1,"source":"init","tag":null, "output":false, "apower":0.0, "voltage":225.9, "freq":50.0, "current":0.000, "pf":0.00, "aenergy":{"total":434.026,"by_minute":[0.000,0.000,0.000],"minute_ts":1794647280}, "ret_aenergy":{"total":0.000,"by_minute":[0.000,0.000,0.000],"minute_ts":1794647280},"counts":{"on_time":45330,"on_time_rst_ts":0,"switch_on":6,"switch_on_rst_ts":0,"on_above_thr":0,"on_above_thr_rst_ts":0}}
+
+[10:09:00][powermeter/serverraum/strip/status/switch:2] {"id":2,"source":"init","tag":null, "output":false, "apower":0.0, "voltage":224.5, "freq":50.0, "current":0.000, "pf":0.00, "aenergy":{"total":0.094,"by_minute":[0.000,0.000,0.000],"minute_ts":1794647340}, "ret_aenergy":{"total":0.000,"by_minute":[0.000,0.000,0.000],"minute_ts":1794647340},"counts":{"on_time":120,"on_time_rst_ts":0,"switch_on":4,"switch_on_rst_ts":0,"on_above_thr":0,"on_above_thr_rst_ts":0}}
+
+[10:09:00][powermeter/serverraum/strip/status/switch:3] {"id":3,"source":"init","tag":null, "output":false, "apower":0.0, "voltage":224.5, "freq":50.0, "current":0.000, "pf":0.00, "aenergy":{"total":0.000,"by_minute":[0.000,0.000,0.000],"minute_ts":1794647340}, "ret_aenergy":{"total":0.000,"by_minute":[0.000,0.000,0.000],"minute_ts":1794647340},"counts":{"on_time":0,"on_time_rst_ts":0,"switch_on":4,"switch_on_rst_ts":0,"on_above_thr":0,"on_above_thr_rst_ts":0}}
+
+Plug M Gen3
+[10:09:00][powermeter/esszimmer/schrank/status/switch:0] {"id":0,"source":"button","tag":null, "output":true, "apower":15.1, "voltage":227.0, "freq":50.0, "current":0.067, "aenergy":{"total":2218.573,"by_minute":[208.512,208.512,417.025],"minute_ts":1794647340}, "ret_aenergy":{"total":0.000,"by_minute":[0.000,0.000,0.000],"minute_ts":1794647340},"counts":{"on_time":519210,"on_time_rst_ts":0,"switch_on":25,"switch_on_rst_ts":0,"on_above_thr":0,"on_above_thr_rst_ts":0},"temperature":{"tC":37.8, "tF":100.0}}

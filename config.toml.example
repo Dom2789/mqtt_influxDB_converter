@@ -1,0 +1,67 @@
+# mqtt_influxDB_converter — example configuration.
+#
+# Copy to config.toml. This file holds only non-secret settings and is safe to
+# commit; InfluxDB credentials come from the process environment instead
+# (INFLUX_URL, INFLUX_TOKEN, INFLUX_ORG, INFLUX_BUCKET — see influx.env.example),
+# which is what the systemd unit's EnvironmentFile supplies.
+
+[mqtt]
+host = "192.168.1.225"
+port = 1883
+
+
+# --- sensors ------------------------------------------------------------
+#
+# Each [[sensor]] block is a topic filter plus a fields table mapping the
+# InfluxDB field name to the JSON key in the payload. A key containing "."
+# is a path into nested objects. A field whose key is missing from a given
+# payload is skipped, which is what lets one block span devices with
+# different field sets.
+#
+#   cast            applies to every field in the block, which is what keeps
+#                   a series type-stable (21 and 21.5 in the same field
+#                   would otherwise be rejected by InfluxDB)
+#   tags            static tag values
+#   tags_from_topic tag value taken from a topic level, counting from 0
+
+[[sensor]]
+name        = "water temperature techroom"
+topic       = "temp/techroom/1"
+measurement = "environment"
+cast        = "float"
+fields      = { watertemperature = "temp" }
+tags        = { room = "techroom" }
+
+# The same probe type across a fleet: one block, with room and device read
+# off the topic rather than written out per device.
+[[sensor]]
+name            = "techroom fleet"
+topic           = "temp/+/+"
+measurement     = "environment"
+cast            = "float"
+fields          = { watertemperature = "temp" }
+tags_from_topic = { room = 1, device = 2 }
+
+# Every Shelly in example_messages/power.txt: the rack's Plug PM Gen3, the
+# strip's four switch channels, and the esszimmer Plug M Gen3 — six topics,
+# three device models, one block. channel is topic level 4, so it reads
+# "pm1:0" or "switch:0".."switch:3".
+#
+# fields is a sub-table because TOML forbids a newline inside { }; a
+# sub-table and an inline table produce the same thing.
+[[sensor]]
+name            = "shelly powermeter fleet"
+topic           = "powermeter/+/+/status/+"
+measurement     = "power"
+cast            = "float"
+tags_from_topic = { room = 1, device = 2, channel = 4 }
+
+  [sensor.fields]
+  voltage     = "voltage"
+  current     = "current"
+  power       = "apower"
+  freq        = "freq"
+  energy      = "aenergy.total"      # all three devices
+  pf          = "pf"                 # Power Strip 4 only
+  temperature = "temperature.tC"     # Plug M only
+  on_time     = "counts.on_time"     # switch-type only
