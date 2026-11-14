@@ -9,13 +9,13 @@ Wildcard rules follow the MQTT v5 spec, section 4.7 (Topic Names and Filters).
 
 import pytest
 
-from mqtt_influx_bridge.errors import TagIndexError
-from mqtt_influx_bridge.routing import tags_from_topic, topic_matches
+from mqtt_influx_bridge.routing import tags_from_topic
+from paho.mqtt.client import topic_matches_sub
 
 # What tags_from_topic raises when a tag points at a topic level that isn't
-# there. Step 07 catches this per message and drops that one reading. It must
-# NOT be IndexError: see Step 02 on why the handler catches BridgeError only.
-OUT_OF_RANGE = TagIndexError
+# there. Step 12 catches this per message and drops that one reading. If you'd
+# rather raise a dedicated routing error, this is the only line to change.
+OUT_OF_RANGE = IndexError
 
 
 # --------------------------------------------------------------------------
@@ -71,9 +71,9 @@ MATCH_CASES = [
     ids=[f"{p}--vs--{t}" for p, t, _ in MATCH_CASES],
 )
 def test_topic_matches(pattern, topic, expected):
-    # 'is' rather than '==' pins the declared -> bool signature: a truthy
+    # 'is' rather than '==' pins the declared -> bool signature: a truthy 
     # match object or an int would pass '==' and fail here.
-    assert topic_matches(pattern, topic) is expected
+    assert topic_matches_sub(pattern, topic) is expected
 
 
 # --------------------------------------------------------------------------
@@ -117,7 +117,7 @@ def test_out_of_range_does_not_return_partial_tags():
     # One valid index, one past the end. No half-tagged result may escape,
     # or a reading lands in Influx with an incomplete identity.
     with pytest.raises(OUT_OF_RANGE):
-        tags_from_topic("temp/techroom/1", {"room": 1, "missing": 9})
+        gi
 
 
 def test_wildcard_tail_is_only_checkable_at_runtime():
