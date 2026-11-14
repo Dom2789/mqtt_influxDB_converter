@@ -894,6 +894,7 @@ topic_matches_sub("#", "$SYS/broker/load")      # False — wildcards skip $-top
         <li>First, two additions to earlier files: <code>SensorSpec</code> joins <code>model.py</code>, and <code>DecodeError</code> plus <code>ConfigError</code> join <code>errors.py</code>. Both are five-minute edits.</li>
         <li><code>json.loads</code> the payload, then look up each key named in the spec's <code>fields</code> table. A key containing <code>.</code> is a path: <code>key.split(".")</code> and walk dicts, one <code>get</code> per segment. Dicts only — no list indexing.</li>
         <li>A segment that is missing, or that resolves to <code>null</code>, <strong>skips that field</strong> — it does not raise. This is now a decision, not a free choice; see <em>Missing fields are skipped</em> below. A payload that yields no fields at all produces no <code>Reading</code>.</li>
+        <li>A path that walks <em>into</em> a non-object — <code>voltage.x</code> when <code>voltage</code> is a number — <strong>raises</strong> <code>DecodeError</code>. Unlike a missing key, no device can make that path valid; it is a mistake in the <code>fields</code> table, so it should be loud.</li>
         <li>Cast every surviving value with the spec's <code>cast</code>, then return one <code>Reading</code> carrying all the fields, with <code>tags</code> left empty — Step&nbsp;07 fills them.</li>
         <li>A plain function, not a class: it keeps no state, and everything it needs — <code>fields</code>, <code>cast</code>, <code>measurement</code> — arrives in the <code>SensorSpec</code> on every call. A broken spec is still a startup error, because Step&nbsp;05 validates it while building the <code>SensorSpec</code>.</li>
         <li>Catch every failure and re-raise as <code>DecodeError</code>. No <code>JSONDecodeError</code>, <code>ValueError</code>, <code>KeyError</code> or <code>UnicodeDecodeError</code> may escape this class.</li>
@@ -1078,6 +1079,9 @@ class ConfigError(BridgeError):
         <li><code>aenergy.by_minute</code> as a field path: a list is not a scalar,
         so it is a <code>DecodeError</code>, not a silent skip and not a list
         written into Influx.</li>
+        <li><code>voltage.x</code> as a field path: <code>voltage</code> is a
+        number, so the path walks into a non-object — a <code>DecodeError</code>,
+        not a skip.</li>
         </ul>
         <p>Then one test per failure above, plus
         <code>assert issubclass(DecodeError, BridgeError)</code> and
