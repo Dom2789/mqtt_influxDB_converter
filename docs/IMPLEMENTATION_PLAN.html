@@ -12,11 +12,18 @@
    gutter rail that carries the step number, so the sequence is readable as a
    sequence. Phases are the only full-width bands.
 
-   Palette: Synthwave '84. A committed single dark world — no light variant,
-   because the theme has none. Four elevation steps from the deep ground to the
+   Palette: Synthwave '84, with a light counterpart on [data-theme="light"].
+   It follows the OS until the toggle in the corner is used, after which the
+   choice is remembered. Four elevation steps from the deep ground to the
    sunken code pane, and the neons carry meaning rather than decoration:
    pink = structure, cyan = data and verified, yellow = trap, coral = retired,
-   mint = commentary. */
+   mint = commentary.
+
+   Every colour is a token on :root and nothing below this block names one
+   directly — that is what makes the light variant a second token list rather
+   than a second stylesheet. The glows are tokens for the same reason: neon
+   bloom is what a dark screen does, and it reads as blur on paper, so in light
+   the two text glows go to `none` and the meaning survives in the hue. */
 :root {
   --bg:        #1f1830;   /* deep ground */
   --surface:   #2a2139;   /* cards, masthead, footer */
@@ -30,13 +37,17 @@
   --accent:    #ff7edb;   /* neon pink: headings, links, the step rail */
   --data:      #36f9f6;   /* cyan: readouts, new files, verification */
   --data-bg:   rgba(54, 249, 246, 0.07);
+  --data-line: rgba(54, 249, 246, 0.45);
   --signal:    #fede5d;   /* yellow: traps */
   --signal-bg: rgba(254, 222, 93, 0.07);
   --mint:      #72f1b8;   /* commentary */
   --retired:   #f97e72;   /* coral: code being deleted */
+  --retired-line: rgba(249, 126, 114, 0.45);
 
   --glow-strong: 0 0 2px rgba(255, 126, 219, 0.55), 0 0 18px rgba(255, 126, 219, 0.45);
   --glow-soft:   0 0 12px rgba(255, 126, 219, 0.28);
+  --glow-edge-down: 0 1px 18px rgba(255, 126, 219, 0.3);      /* masthead horizon */
+  --glow-edge-up:   0 -1px 14px -4px rgba(255, 126, 219, 0.45); /* phase band */
 
   --font-display: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
   --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
@@ -52,6 +63,72 @@
 
   color-scheme: dark;
 }
+
+/* Light: the same five meanings, re-voiced for paper. The neons cannot cross
+   over — #36f9f6 cyan on white is about 1.4:1 — so each one becomes the
+   darkest version of itself that still reads as that colour, and every one
+   below clears 5:1 against the ground. Elevation inverts: on a dark screen a
+   raised surface is lighter than the ground, on paper it is darker, so
+   --surface and --sunken step down from --bg instead of up.
+
+   Keyed on an attribute, not on prefers-color-scheme: the script in <head>
+   resolves the OS preference to an explicit data-theme before first paint, so
+   one token list serves both the system default and the toggle. The media
+   query would need a second copy of all of it to let the button win. */
+:root[data-theme="light"] {
+    --bg:        #fbf8fe;   /* paper, faintly lavender */
+    --surface:   #f3edfa;
+    --surface-2: #e8dff5;
+    --sunken:    #eee7f7;   /* code panes: a step under the ground */
+
+    --ink:       #251c38;
+    --muted:     #5f5480;
+    --line:      #ded2f0;
+
+    --accent:    #b01a84;   /* the pink, taken down to deep magenta */
+    --data:      #0a6f80;   /* the cyan, taken down to deep teal */
+    --data-bg:   rgba(10, 111, 128, 0.09);
+    --data-line: rgba(10, 111, 128, 0.40);
+    --signal:    #7d5a0c;   /* the yellow, taken down to dark amber */
+    --signal-bg: rgba(138, 100, 16, 0.10);
+    --mint:      #0b6d49;
+    --retired:   #b43125;
+    --retired-line: rgba(180, 49, 37, 0.40);
+
+    /* No bloom on paper. The two edge shadows stay, faintly, because they do
+       structural work — they are what separates masthead from body and marks
+       a phase break. */
+    --glow-strong: none;
+    --glow-soft:   none;
+    --glow-edge-down: 0 1px 12px rgba(176, 26, 132, 0.16);
+    --glow-edge-up:   0 -1px 10px -4px rgba(176, 26, 132, 0.22);
+
+    color-scheme: light;
+}
+
+/* The toggle. Its label is CSS, not script: the button says where it will take
+   you, and the attribute that drives the palette drives the word too, so the
+   two can never disagree. */
+#theme-toggle {
+  position: fixed;
+  top: max(0.75rem, env(safe-area-inset-top, 0px));
+  right: max(0.75rem, env(safe-area-inset-right, 0px));
+  z-index: 20;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+#theme-toggle::after { content: "☀ LIGHT"; }
+:root[data-theme="light"] #theme-toggle::after { content: "☾ DARK"; }
+#theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+#theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -151,7 +228,7 @@ pre code { background: none; padding: 0; font-size: 1em; }
   z-index: 1;
   border-bottom: 1px solid var(--accent);
   background: linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
-  box-shadow: 0 1px 18px rgba(255, 126, 219, 0.3);
+  box-shadow: var(--glow-edge-down);
 }
 .masthead .wrap {
   padding-block: clamp(2.5rem, 7vw, 4.5rem) clamp(1.75rem, 4vw, 2.5rem);
@@ -252,7 +329,7 @@ main .wrap { padding-block: 0 clamp(3rem, 8vw, 5rem); }
   margin-top: clamp(2.5rem, 7vw, 4rem);
   padding-top: 1.1rem;
   border-top: 2px solid var(--accent);
-  box-shadow: 0 -1px 14px -4px rgba(255, 126, 219, 0.45);
+  box-shadow: var(--glow-edge-up);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -294,8 +371,8 @@ main .wrap { padding-block: 0 clamp(3rem, 8vw, 5rem); }
   background: var(--surface);
   color: var(--muted);
 }
-.files span.new { color: var(--data); border-color: rgba(54, 249, 246, 0.45); }
-.files span.gone { color: var(--retired); border-color: rgba(249, 126, 114, 0.45); text-decoration: line-through; }
+.files span.new { color: var(--data); border-color: var(--data-line); }
+.files span.gone { color: var(--retired); border-color: var(--retired-line); text-decoration: line-through; }
 
 ul.plain { margin: 0; padding-left: 1.15rem; max-width: var(--measure); }
 ul.plain li { margin-bottom: 0.3rem; }
@@ -374,8 +451,39 @@ footer .wrap { padding-block: 1.5rem 2rem; display: flex; flex-direction: column
   * { animation: none !important; transition: none !important; }
 }
 </style>
+<script>
+// Runs in <head>, before first paint, so the page never flashes the wrong
+// palette. Resolves to an explicit data-theme: the saved choice if there is
+// one, otherwise whatever the OS asks for. Without a saved choice the page
+// keeps following the OS, including a change made while it is open.
+(function () {
+  var root = document.documentElement;
+  var KEY = 'plan-theme';
+  var mq = window.matchMedia('(prefers-color-scheme: light)');
+
+  function saved() {
+    try { return localStorage.getItem(KEY); } catch (e) { return null; }
+  }
+  function apply(theme) { root.setAttribute('data-theme', theme); }
+
+  apply(saved() || (mq.matches ? 'light' : 'dark'));
+
+  mq.addEventListener('change', function (e) {
+    if (!saved()) { apply(e.matches ? 'light' : 'dark'); }
+  });
+
+  window.toggleTheme = function () {
+    var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    apply(next);
+    try { localStorage.setItem(KEY, next); } catch (e) {}
+  };
+})();
+</script>
 </head>
 <body>
+
+<button id="theme-toggle" type="button" onclick="toggleTheme()"
+        aria-label="Switch colour scheme"></button>
 
 <header class="masthead">
   <div class="wrap">
