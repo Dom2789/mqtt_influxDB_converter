@@ -43,9 +43,12 @@ fields          = { watertemperature = "temp" }
 tags_from_topic = { room = 1, device = 2 }
 
 # Every Shelly in example_messages/power.txt: the rack's Plug PM Gen3, the
-# strip's four switch channels, and the esszimmer Plug M Gen3 — six topics,
-# three device models, one block. channel is topic level 4, so it reads
-# "pm1:0" or "switch:0".."switch:3".
+# strip's four switch channels, the esszimmer Plug M Gen3 and the Dimmer
+# Gen4 — seven topics, four device models, one block. channel is topic
+# level 4, so it reads "pm1:0", "switch:0".."switch:3" or "light:0".
+#
+# No field below is sent by all four: even freq is missing from the Dimmer.
+# The skip rule is what holds this block together.
 #
 # fields is a sub-table because TOML forbids a newline inside { }; a
 # sub-table and an inline table produce the same thing.
@@ -60,8 +63,11 @@ tags_from_topic = { room = 1, device = 2, channel = 4 }
   voltage     = "voltage"
   current     = "current"
   power       = "apower"
-  freq        = "freq"
-  energy      = "aenergy.total"      # all three devices
+  freq        = "freq"               # not on the Dimmer
+  energy      = "aenergy.total"      # all four
   pf          = "pf"                 # Power Strip 4 only
-  temperature = "temperature.tC"     # Plug M only
-  on_time     = "counts.on_time"     # switch-type only
+  temperature = "temperature.tC"     # Plug M and Dimmer
+  on_time     = "counts.on_time"     # Plug M and Power Strip 4
+  output      = "output"             # everything but the Plug PM; a JSON
+                                     # bool, stored as 0.0/1.0 by cast
+  brightness  = "brightness"         # Dimmer only

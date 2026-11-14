@@ -804,10 +804,10 @@ topic_matches_sub("#", "$SYS/broker/load")      # False — wildcards skip $-top
       <pre><code># water temperature: {"temp": 21.5}
 fields = { watertemperature = "temp" }
 
-# Shelly, flat keys plus nested ones — one table spans all three
-# devices in example_messages/power.txt. A sub-table, not an inline
-# one: TOML 1.0 forbids a newline inside { }, so tomllib rejects a
-# multi-line inline table outright.
+# Shelly, flat keys plus nested ones — one table spans all four
+# device models in example_messages/power.txt. A sub-table, not an
+# inline one: TOML 1.0 forbids a newline inside { }, so tomllib
+# rejects a multi-line inline table outright.
 [[sensor]]
 name            = "shelly powermeter fleet"
 topic           = "powermeter/+/+/status/+"
@@ -819,20 +819,25 @@ tags_from_topic = { room = 1, device = 2, channel = 4 }
   voltage     = "voltage"
   current     = "current"
   power       = "apower"
-  freq        = "freq"
-  energy      = "aenergy.total"      # all three devices
+  freq        = "freq"               # not on the Dimmer
+  energy      = "aenergy.total"      # all four
   pf          = "pf"                 # Power Strip 4 only
-  temperature = "temperature.tC"     # Plug M only
-  on_time     = "counts.on_time"     # switch-type only</code></pre>
-      <p>That table is the shape the skip rule exists for: <code>pf</code>,
-      <code>temperature</code> and <code>counts</code> each appear on some of the
-      three devices and not the others, so a single <code>[[sensor]]</code>
-      block with
+  temperature = "temperature.tC"     # Plug M and Dimmer
+  on_time     = "counts.on_time"     # Plug M and Power Strip 4
+  output      = "output"             # everything but the Plug PM; a JSON
+                                     # bool, stored as 0.0/1.0 by cast
+  brightness  = "brightness"         # Dimmer only</code></pre>
+      <p>That table is the shape the skip rule exists for. <strong>Not one field
+      in it is sent by all four device models</strong> — the Dimmer Gen4 omits
+      even <code>freq</code>, which is why treating the flat electricals as a
+      guaranteed core and the nested ones as optional extras would be wrong. So a
+      single <code>[[sensor]]</code> block with
       <code>topic = "powermeter/+/+/status/+"</code> and
       <code>tags_from_topic = { room = 1, device = 2, channel = 4 }</code>
-      covers the whole rack, the strip's four channels and the
-      <code>esszimmer</code> plug — and each point carries only the fields its
-      device actually sent.</p>
+      covers the rack's Plug PM, the strip's four channels, the
+      <code>esszimmer</code> Plug M and the lamp's Dimmer — seven topics, four
+      models — and each point carries only the fields its device actually
+      sent.</p>
       <p>And the errors, in <code>errors.py</code> beside the other leaves. The
       base class is the part that matters:</p>
       <pre><code>class DecodeError(BridgeError):          # NOT ValueError — see Step 02
@@ -870,8 +875,8 @@ class ConfigError(BridgeError):
         <span class="label">Why dotted paths came back</span>
         <p>The cut list says a cut returns only with a measurement behind it.
         <code>example_messages/power.txt</code> is that measurement: a Plug PM
-        Gen3, a Power Strip 4 Gen4 and a Plug M Gen3, and every field worth
-        keeping beyond the four flat electricals is nested —
+        Gen3, a Power Strip 4 Gen4, a Plug M Gen3 and a Dimmer Gen4, and every
+        field worth keeping beyond the flat electricals is nested —
         <code>aenergy.total</code> (the cumulative energy counter, on all three),
         <code>temperature.tC</code>, <code>counts.on_time</code>. A flat
         <code>payload.get(key)</code> cannot reach any of them, so the original
@@ -881,10 +886,12 @@ class ConfigError(BridgeError):
       </div>
       <div class="note trap">
         <span class="label">Missing fields are skipped</span>
-        <p>Choosing here is no longer free. The three devices publish overlapping
-        but unequal field sets — <code>pm1:0</code> has no <code>pf</code>, no
-        <code>output</code> and no <code>counts</code>; only the Plug M reports
-        <code>temperature</code> — so <em>raise</em> on a missing key means one
+        <p>Choosing here is no longer free. The four device models publish
+        overlapping but unequal field sets — <code>pm1:0</code> has no
+        <code>pf</code>, no <code>output</code> and no <code>counts</code>; the
+        Dimmer has no <code>freq</code> and no <code>counts</code>; only the Plug
+        M and the Dimmer report <code>temperature</code> — so <em>raise</em> on a
+        missing key means one
         wildcard <code>[[sensor]]</code> block cannot span them and you are back to
         one block per device model, which is exactly the fleet property
         <code>tags_from_topic</code> exists to provide. So: <strong>a missing
@@ -897,6 +904,15 @@ class ConfigError(BridgeError):
         <code>fields</code> are arbitrary by design. The protection is the
         Step&nbsp;07 counter plus <code>--dry-run</code> on a real topic once per
         new device.</p>
+        <p>Test the lookup result with <code>is None</code>, never for
+        falsiness. Almost every value in
+        <code>example_messages/power.txt</code> is falsy —
+        <code>"apower":0.0</code>, <code>"current":0.000</code>,
+        <code>"output":false</code>, <code>"on_time":0</code>,
+        <code>"brightness"</code> would be too on a dark lamp — so
+        <code>if not value: continue</code> silently drops an idle device's
+        entire reading and leaves a Grafana gap that looks exactly like a dead
+        sensor. A switch that is off is data.</p>
       </div>
       <div class="note trap">
         <span class="label">Other failures to handle, not raise</span>
@@ -938,6 +954,9 @@ class ConfigError(BridgeError):
         <code>on_time</code> = 870.0 present, <code>temperature</code> absent.</li>
         <li>the Plug M → <code>temperature</code> = 37.8 from
         <code>temperature.tC</code>, <code>pf</code> absent.</li>
+        <li>the Dimmer → five fields, with <code>freq</code> among the skipped
+        ones. This is the case that stops anyone from "optimising" the skip rule
+        into a required-core/optional-extra split later.</li>
         <li>a path whose <em>parent</em> is missing (<code>counts.on_time</code> on
         <code>pm1:0</code>) and one whose parent is present but the leaf is not —
         both skip, neither raises.</li>

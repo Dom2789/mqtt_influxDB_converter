@@ -10,5 +10,8 @@
 
 [10:09:00][powermeter/serverraum/strip/status/switch:3] {"id":3,"source":"init","tag":null, "output":false, "apower":0.0, "voltage":224.5, "freq":50.0, "current":0.000, "pf":0.00, "aenergy":{"total":0.000,"by_minute":[0.000,0.000,0.000],"minute_ts":1794647340}, "ret_aenergy":{"total":0.000,"by_minute":[0.000,0.000,0.000],"minute_ts":1794647340},"counts":{"on_time":0,"on_time_rst_ts":0,"switch_on":4,"switch_on_rst_ts":0,"on_above_thr":0,"on_above_thr_rst_ts":0}}
 
-Plug M Gen3
+// Plug M Gen3
 [10:09:00][powermeter/esszimmer/schrank/status/switch:0] {"id":0,"source":"button","tag":null, "output":true, "apower":15.1, "voltage":227.0, "freq":50.0, "current":0.067, "aenergy":{"total":2218.573,"by_minute":[208.512,208.512,417.025],"minute_ts":1794647340}, "ret_aenergy":{"total":0.000,"by_minute":[0.000,0.000,0.000],"minute_ts":1794647340},"counts":{"on_time":519210,"on_time_rst_ts":0,"switch_on":25,"switch_on_rst_ts":0,"on_above_thr":0,"on_above_thr_rst_ts":0},"temperature":{"tC":37.8, "tF":100.0}}
+
+// Dimmer Gen4
+[11:12:00][powermeter/esszimmer/lampe/status/light:0] {"id":0,"source":"WS_in","tag":null,"output":false,"brightness":11,"temperature":{"tC":41.4, "tF":106.5},"aenergy":{"total":102.164,"by_minute":[40.522,48.307,0.000],"minute_ts":1794651120},"apower":0.0,"current":0.000,"voltage":226.0}
