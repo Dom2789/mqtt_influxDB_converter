@@ -199,6 +199,14 @@ def test_missing_top_level_key_skips():
     assert r.fields == {"v": 225.1}
 
 
+def test_path_through_a_scalar_is_an_error():
+    # "voltage" is a number, so there is no "voltage.x" to walk into. Unlike a
+    # missing key, that is a mistake in the fields table, not a device that
+    # simply didn't send the field.
+    with pytest.raises(DecodeError):
+        decode_json(PLUG_PM, spec({"x": "voltage.x", "v": "voltage"}))
+
+
 def test_null_value_skips():
     # "tag": null on the strip
     r = decode_one(STRIP_SWITCH_0, spec({"tag": "tag", "v": "voltage"}))

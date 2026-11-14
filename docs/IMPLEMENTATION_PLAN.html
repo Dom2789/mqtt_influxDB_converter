@@ -1010,6 +1010,15 @@ class ConfigError(BridgeError):
         <code>fields</code> are arbitrary by design. The protection is the
         Step&nbsp;07 counter plus <code>--dry-run</code> on a real topic once per
         new device.</p>
+        <p>A <code>null</code> is treated the same as a missing key, for four
+        reasons. InfluxDB has no null field value — a field can only be left
+        out of the point — so the only alternative is raising, and that would
+        throw away the valid fields beside it. The devices really send it:
+        every Shelly switch status carries <code>"tag":null</code>, the
+        firmware's way of saying "no value right now", which means the same
+        as an absent key. And the code gets shorter, not longer:
+        <code>dict.get</code> returns <code>None</code> for both, so one
+        check covers both cases.</p>
         <p>Test the lookup result with <code>is None</code>, never for
         falsiness. Almost every value in
         <code>example_messages/power.txt</code> is falsy —
