@@ -9,13 +9,13 @@ Wildcard rules follow the MQTT v5 spec, section 4.7 (Topic Names and Filters).
 
 import pytest
 
+from mqtt_influx_bridge.errors import TagIndexError
 from mqtt_influx_bridge.routing import tags_from_topic
 from paho.mqtt.client import topic_matches_sub
 
 # What tags_from_topic raises when a tag points at a topic level that isn't
-# there. Step 12 catches this per message and drops that one reading. If you'd
-# rather raise a dedicated routing error, this is the only line to change.
-OUT_OF_RANGE = IndexError
+# there. Step 12 catches this per message and drops that one reading.
+OUT_OF_RANGE = TagIndexError
 
 
 # --------------------------------------------------------------------------
@@ -117,7 +117,7 @@ def test_out_of_range_does_not_return_partial_tags():
     # One valid index, one past the end. No half-tagged result may escape,
     # or a reading lands in Influx with an incomplete identity.
     with pytest.raises(OUT_OF_RANGE):
-        gi
+        tags_from_topic("temp/techroom/1", {"room": 1, "missing": 9})
 
 
 def test_wildcard_tail_is_only_checkable_at_runtime():
