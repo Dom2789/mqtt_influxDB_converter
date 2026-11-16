@@ -1331,8 +1331,12 @@ def handle(msg: RawMessage, router: Router,
         for one.</li>
         <li>Wrap each <em>sink</em> call separately too: one failing sink must not
         stop the others from receiving the reading.</li>
-        <li>Count messages in, readings out, decode errors. Log the totals once
-        at shutdown.</li>
+        <li>Count messages in, readings out, decode errors. The counters only
+        ever grow; give <code>Counters</code> one method,
+        <code>since(previous) -&gt; Counters</code>, returning the field-wise
+        difference. Step&nbsp;09 logs that difference every hour and the totals
+        at shutdown. A totals-only log at shutdown is not enough for a service
+        that runs for weeks, and a crash or <code>SIGKILL</code> never reaches it.</li>
       </ul>
       <div class="note learn">
         <span class="label">Why there is no queue and no writer thread</span>
@@ -1360,7 +1364,8 @@ def handle(msg: RawMessage, router: Router,
         readings arrive; tags merge in the right precedence; one wildcard sensor
         covers a fleet; two overlapping patterns both fire; one bad message does
         not stop the next; a sink that raises does not lose the others; the
-        counters add up. None of this was testable while
+        counters add up, and <code>since()</code> returns only what happened
+        after the copy. None of this was testable while
         <code>subscribe()</code> blocked forever in
         <code>loop_forever()</code>.</p>
       </div>
@@ -1438,7 +1443,8 @@ def handle(msg: RawMessage, router: Router,
         <ol>
         <li>Parse args, load config, configure logging — in that order, so that <code>--debug</code> is already in effect if the config turns out to be broken.</li>
         <li>Build bottom-up: sinks, then router, then source — passing <code>handle</code> bound to the router, sinks and counters as the source's callback.</li>
-        <li>Register the signal handlers so they only set a <code>threading.Event</code>, then block the main thread on <code>event.wait()</code>. Do no real work inside a handler.</li>
+        <li>Register the signal handlers so they only set a <code>threading.Event</code>, then block the main thread on <code>event.wait(3600)</code> in a loop. Do no real work inside a handler.</li>
+        <li>Each time the wait times out, log the last hour's counts and keep a copy for the next round — <code>log.info("last hour: %s", counters.since(previous))</code>, then <code>previous = dataclasses.replace(counters)</code>. When the event is set, log the totals once and tear down. The main thread only reads the counters, so the single-writer argument from Step&nbsp;07 still holds and there is still no lock. The copy is not atomic across fields, so a message arriving mid-copy can shift by one hour; it is never lost from the totals.</li>
         <li>Tear down in two statements: <code>source.stop()</code>, then close each sink. Stopping ingest first and flushing second is the whole of the ordering requirement.</li>
         </ol>
       </div>
@@ -1463,7 +1469,9 @@ def handle(msg: RawMessage, router: Router,
         <span class="label">Verify</span>
         <p><code>uv run mqtt-influx-bridge --help</code>, then
         <code>--dry-run</code> against the live broker, then
-        <kbd>Ctrl-C</kbd>: expect a clean flush and no traceback.</p>
+        <kbd>Ctrl-C</kbd>: expect a clean flush, the totals line, and no
+        traceback. The hourly line is easiest to see with a shortened interval
+        while you test it; put the hour back before you commit.</p>
       </div>
     </div>
   </div>
