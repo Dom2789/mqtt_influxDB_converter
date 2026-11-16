@@ -1,6 +1,8 @@
 import tomllib
 
 from os import environ
+from pprint import pprint
+
 from dotenv import dotenv_values
 
 from collections.abc import Mapping, Set
@@ -49,6 +51,39 @@ class AppConfig:
 def unknown_keys(keys_config:Set[str], keys_dataclass: Set[str]) -> Set[str]:
     return keys_config - keys_dataclass
 
+def build_mqtt(raw:Mapping) -> MqttConfig:
+    if "host" not in raw:
+        raise ConfigError("[mqtt]: missing required key 'host'")
+    valid = {f.name for f in fields(MqttConfig)}
+    if unknown := unknown_keys(raw.keys(), valid):
+        raise ConfigError(f"[mqtt]: unknown key(s) {sorted(unknown)}, valid: {sorted(valid)}")
+    if "port" in raw.keys():
+        mqtt = MqttConfig(raw["host"], raw["port"])
+    else:
+        mqtt = MqttConfig(raw["host"])
+
+    return mqtt
+
+
+def build_influx(raw: Mapping, env: Mapping[str, str]) -> InfluxWriteConfig:
+    valid = {"batch_size", "flush_interval_ms"}
+    if unknown := unknown_keys(raw.keys(), valid):
+        raise ConfigError(f"[influx]: unknown key(s) {sorted(unknown)}, valid: {sorted(valid)}")
+
+    creds = {}
+    for var in CREDENTIALS:
+        if not env.get(var):  # missing, None, or ""
+            raise ConfigError(f"missing or empty credential: {var}")
+        creds[var.removeprefix("INFLUX_").lower()] = env[var]
+
+    return InfluxWriteConfig(**creds, **raw)
+
+
+def build_sensors(raw:tuple[SensorSpec, ...]) -> tuple[SensorSpec, ...]:
+    sensors = tuple()
+    return sensors
+
+
 def build_config(raw: Mapping, env: Mapping[str, str]) -> AppConfig:
     """Validate an already-parsed TOML dict plus credentials into an AppConfig.
 
@@ -58,33 +93,15 @@ def build_config(raw: Mapping, env: Mapping[str, str]) -> AppConfig:
     raw_mqtt = raw.get("mqtt", {})
     if raw_mqtt == {}:
         raise ConfigError("Config-File has no mqtt-block")
-    if "host" not in raw_mqtt:
-        raise ConfigError("[mqtt]: missing required key 'host'")
-    valid = {f.name for f in fields(MqttConfig)}
-    if unknown := unknown_keys(raw_mqtt.keys(), valid):
-        raise ConfigError(f"[mqtt]: unknown key(s) {sorted(unknown)}, valid: {sorted(valid)}")
-    if "port" in raw_mqtt.keys():
-        mqtt = MqttConfig(raw_mqtt["host"], raw_mqtt["port"])
-    else:
-        mqtt = MqttConfig(raw_mqtt["host"])
+    mqtt = build_mqtt(raw_mqtt)
 
     # influx section
     raw_influx = raw.get("influx", {})
-
-    valid = {k for k in CREDENTIALS}
-    if unknown := unknown_keys(env.keys(), valid):
-        raise ConfigError(f"influx.env: unknown key(s) {sorted(unknown)}, valid: {sorted(valid)}")
-
-    for key, value in env.items():
-        if not value:
-            raise ConfigError(f"influx.env file has empty field: {key}")
-        else:
-            raw_influx[key] = value
-
-    influx = None
+    influx = build_influx(raw_influx, env)
 
     # sensors section
-    sensors = None
+    raw_sensors = raw.get("sensor")
+    sensors = build_sensors(raw_sensors)
 
     print(AppConfig(mqtt, influx, sensors))
     return AppConfig(mqtt, influx, sensors)
@@ -107,7 +124,7 @@ def load_config(path: str | Path, env_file: str | Path | None = None) -> AppConf
     file_env = dotenv_values(env_file) if env_file is not None else {}
     env = {k: environ.get(k, file_env.get(k)) for k in CREDENTIALS}
 
-    print(raw)
+    pprint(raw)
 
     build_config(raw, env)
 
