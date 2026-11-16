@@ -5,10 +5,20 @@
 # (INFLUX_URL, INFLUX_TOKEN, INFLUX_ORG, INFLUX_BUCKET — see influx.env.example),
 # which is what the systemd unit's EnvironmentFile supplies.
 
+# Optional, default "INFO". One of DEBUG, INFO, WARNING, ERROR, CRITICAL.
+# Must stay above the first [table]: anything below a header belongs to it.
+log_level = "INFO"
+
 [mqtt]
 host = "192.168.1.225"
 port = 1883
 
+# Optional write tuning; the values below are the defaults, so the whole
+# table can be left out. url, token, org and bucket are not allowed here —
+# they come from the environment only.
+[influx]
+batch_size        = 500     # points per write
+flush_interval_ms = 1000    # max time a point waits in the batch
 
 # --- sensors ------------------------------------------------------------
 #

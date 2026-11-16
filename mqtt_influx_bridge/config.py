@@ -15,6 +15,9 @@ from .model import SensorSpec
 # [[sensor]] cast must be one of these.
 VALID_CASTS = ("float", "int", "str", "bool")
 
+# Top-level log_level must be one of these (the names logging understands).
+VALID_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+
 # Environment variables that must all be present and non-empty.
 CREDENTIALS = ("INFLUX_URL", "INFLUX_TOKEN", "INFLUX_ORG", "INFLUX_BUCKET")
 
@@ -79,9 +82,63 @@ def build_influx(raw: Mapping, env: Mapping[str, str]) -> InfluxWriteConfig:
     return InfluxWriteConfig(**creds, **raw)
 
 
-def build_sensors(raw:tuple[SensorSpec, ...]) -> tuple[SensorSpec, ...]:
-    sensors = tuple()
-    return sensors
+def check_topic_filter(topic: str, where: str) -> None:
+    """MQTT filter rules: '+' and '#' fill a whole level, '#' only as the last."""
+    levels = topic.split("/")
+    for i, level in enumerate(levels):
+        if level == "#" and i == len(levels) - 1:
+            continue
+        if level == "+":
+            continue
+        if not topic or "#" in level or "+" in level:
+            raise ConfigError(f"{where}: invalid topic filter {topic!r}")
+
+
+def build_sensor(raw: Mapping) -> SensorSpec:
+    where = f"[[sensor]] {raw.get('name', '?')!r}"
+
+    valid = {f.name for f in fields(SensorSpec)}
+    if unknown := unknown_keys(raw.keys(), valid):
+        raise ConfigError(f"{where}: unknown key(s) {sorted(unknown)}, valid: {sorted(valid)}")
+    for key in ("name", "topic", "measurement", "fields"):
+        if key not in raw:
+            raise ConfigError(f"{where}: missing required key {key!r}") from None
+
+    check_topic_filter(raw["topic"], where)
+
+    fields_ = raw["fields"]
+    if not isinstance(fields_, Mapping) or not fields_:
+        raise ConfigError(f"{where}: fields must be a non-empty table")
+    for name, key in fields_.items():
+        if not isinstance(key, str):
+            raise ConfigError(f"{where}: fields.{name} must be a string, got {key!r}")
+
+    cast = raw.get("cast", "float")
+    if cast not in VALID_CASTS:
+        raise ConfigError(f"{where}: unknown cast {cast!r}, valid: {list(VALID_CASTS)}")
+
+    for name, value in raw.get("tags", {}).items():
+        if not isinstance(value, str):
+            raise ConfigError(f"{where}: tags.{name} must be a string, got {value!r}")
+
+    # Without '#' the filter fixes the number of levels, so an index past
+    # the end can be caught now; with '#' only the real topic can tell.
+    levels = raw["topic"].split("/")
+    for name, index in raw.get("tags_from_topic", {}).items():
+        # bool is a subclass of int, so True would otherwise pass as 1
+        if not isinstance(index, int) or isinstance(index, bool) or index < 0:
+            raise ConfigError(f"{where}: tags_from_topic.{name} must be an int >= 0, got {index!r}")
+        if "#" not in levels and index >= len(levels):
+            raise ConfigError(
+                f"{where}: tags_from_topic.{name} = {index} is past the last level "
+                f"of {raw['topic']!r} ({len(levels)} levels)"
+            )
+
+    return SensorSpec(**raw)
+
+
+def build_sensors(raw: list[Mapping]) -> tuple[SensorSpec, ...]:
+    return tuple(build_sensor(sensor) for sensor in raw)
 
 
 def build_config(raw: Mapping, env: Mapping[str, str]) -> AppConfig:
@@ -89,6 +146,10 @@ def build_config(raw: Mapping, env: Mapping[str, str]) -> AppConfig:
 
     Every problem is a ConfigError naming the field (and the sensor, if any).
     """
+    valid = {"mqtt", "influx", "sensor", "log_level"}
+    if unknown := unknown_keys(raw.keys(), valid):
+        raise ConfigError(f"unknown top-level key(s) {sorted(unknown)}, valid: {sorted(valid)}")
+
     # mqtt section
     raw_mqtt = raw.get("mqtt", {})
     if raw_mqtt == {}:
@@ -100,11 +161,18 @@ def build_config(raw: Mapping, env: Mapping[str, str]) -> AppConfig:
     influx = build_influx(raw_influx, env)
 
     # sensors section
-    raw_sensors = raw.get("sensor")
+    raw_sensors = raw.get("sensor", {})
+    if raw_sensors == {}:
+        raise ConfigError("Config-File has no sensor-blocks")
     sensors = build_sensors(raw_sensors)
 
-    print(AppConfig(mqtt, influx, sensors))
-    return AppConfig(mqtt, influx, sensors)
+    # log_level, optional
+    log_level = raw.get("log_level", "INFO")
+    if log_level not in VALID_LOG_LEVELS:
+        raise ConfigError(f"unknown log_level {log_level!r}, valid: {list(VALID_LOG_LEVELS)}")
+
+    print(AppConfig(mqtt, influx, sensors, log_level))
+    return AppConfig(mqtt, influx, sensors, log_level)
 
 
 def load_config(path: str | Path, env_file: str | Path | None = None) -> AppConfig:
@@ -126,6 +194,6 @@ def load_config(path: str | Path, env_file: str | Path | None = None) -> AppConf
 
     pprint(raw)
 
-    build_config(raw, env)
+    return build_config(raw, env)
 
 
