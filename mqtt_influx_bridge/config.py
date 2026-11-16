@@ -1,7 +1,6 @@
 import tomllib
 
 from os import environ
-from pprint import pprint
 
 from dotenv import dotenv_values
 
@@ -171,7 +170,6 @@ def build_config(raw: Mapping, env: Mapping[str, str]) -> AppConfig:
     if log_level not in VALID_LOG_LEVELS:
         raise ConfigError(f"unknown log_level {log_level!r}, valid: {list(VALID_LOG_LEVELS)}")
 
-    print(AppConfig(mqtt, influx, sensors, log_level))
     return AppConfig(mqtt, influx, sensors, log_level)
 
 
@@ -191,8 +189,6 @@ def load_config(path: str | Path, env_file: str | Path | None = None) -> AppConf
 
     file_env = dotenv_values(env_file) if env_file is not None else {}
     env = {k: environ.get(k, file_env.get(k)) for k in CREDENTIALS}
-
-    pprint(raw)
 
     return build_config(raw, env)
 
