@@ -32,22 +32,32 @@ class Counters:
 
     def since(self, previous: "Counters") -> "Counters":
         """The field-wise difference self - previous; neither is changed."""
-        ...
+        return Counters(
+            messages_in=self.messages_in - previous.messages_in,
+            readings_out=self.readings_out - previous.readings_out,
+            decode_errors=self.decode_errors - previous.decode_errors,
+        )
 
 
 class Router:
     """The sensor specs from config, looked up by topic."""
 
     def __init__(self, sensors: Sequence[SensorSpec]) -> None:
-        self.sensors: tuple[SensorSpec, ...]
+        self.sensors: tuple[SensorSpec, ...] = tuple(sensors)
 
     def match(self, topic: str) -> list[SensorSpec]:
         """All specs whose filter matches topic, in config order."""
-        ...
+        matches:list[SensorSpec] = []
+
+        for sensor in self.sensors:
+            if topic_matches_sub(sensor.topic, topic):
+                matches.append(sensor)
+
+        return matches
 
     def subscriptions(self) -> set[str]:
         """The topic filters to subscribe to, deduplicated."""
-        ...
+        return {s.topic for s in self.sensors}
 
 
 def handle(msg: RawMessage, router: Router, sinks: Sequence[Any], counters: Counters) -> None:
@@ -63,4 +73,6 @@ def handle(msg: RawMessage, router: Router, sinks: Sequence[Any], counters: Coun
 
 def with_tags(reading: Reading, spec: SensorSpec, topic: str) -> Reading:
     """Static tags from spec, then tags_from_topic (which wins on a clash)."""
-    ...
+    tags = tags_from_topic(topic, spec.tags_from_topic)
+
+    return replace(reading, tags=tags)
