@@ -5,7 +5,7 @@ build/
 dist/
 wheels/
 *.egg-info
-configerror.toml
+
 
 # Virtual environments
 .venv
