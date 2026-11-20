@@ -68,11 +68,28 @@ def handle(msg: RawMessage, router: Router, sinks: Sequence[Any], counters: Coun
     exception is a bug and propagates. Each sink is called separately, so one
     that raises does not stop the others.
     """
+    readings = []
     try:
-        pass
+        counters.messages_in += 1
+        matched = router.match(msg.topic)
+
+        for spec in matched:
+            for reading in decode_json(msg, spec):
+                reading = with_tags(reading, spec, msg.topic)
+                readings.append(reading)
+
+        counters.readings_out += len(readings)
+
     except BridgeError as e:
         counters.decode_errors += 1
-        log.warning(f"topic: {msg.topic} message: {msg.payload} caused: {e}")
+        log.warning("dropped message on %s: %s (payload %r)", msg.topic, e, msg.payload[:200])
+    else:
+
+        for sink in sinks:
+            try:
+                sink.write(readings)
+            except Exception:
+                log.exception("sink %r failed", sink)
 
 
 def with_tags(reading: Reading, spec: SensorSpec, topic: str) -> Reading:
