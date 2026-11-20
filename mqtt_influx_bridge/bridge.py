@@ -68,7 +68,11 @@ def handle(msg: RawMessage, router: Router, sinks: Sequence[Any], counters: Coun
     exception is a bug and propagates. Each sink is called separately, so one
     that raises does not stop the others.
     """
-    ...
+    try:
+        pass
+    except BridgeError as e:
+        counters.decode_errors += 1
+        log.warning(f"topic: {msg.topic} message: {msg.payload} caused: {e}")
 
 
 def with_tags(reading: Reading, spec: SensorSpec, topic: str) -> Reading:
