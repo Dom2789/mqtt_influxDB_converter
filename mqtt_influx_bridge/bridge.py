@@ -73,6 +73,6 @@ def handle(msg: RawMessage, router: Router, sinks: Sequence[Any], counters: Coun
 
 def with_tags(reading: Reading, spec: SensorSpec, topic: str) -> Reading:
     """Static tags from spec, then tags_from_topic (which wins on a clash)."""
-    tags = tags_from_topic(topic, spec.tags_from_topic)
+    tags = {**spec.tags, **tags_from_topic(topic, spec.tags_from_topic)}
 
     return replace(reading, tags=tags)
